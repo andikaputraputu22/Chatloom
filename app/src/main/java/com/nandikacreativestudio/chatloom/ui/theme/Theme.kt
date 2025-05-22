@@ -1,6 +1,5 @@
 package com.nandikacreativestudio.chatloom.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,18 +8,39 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
+    primary = Peach,
+    onPrimary = Color.Black,
     secondary = PurpleGrey80,
-    tertiary = Pink80
+    onSecondary = Color.Black,
+    tertiary = Pink80,
+    onTertiary = Color.Black,
+    background = DarkBackground,
+    onBackground = TextOnDark,
+    surface = DarkSurface,
+    onSurface = TextOnDark,
+    surfaceVariant = SurfaceVariantDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    outline = OutlineDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = Peach,
+    onPrimary = DarkBrown,
+    secondary = BabyBlue,
+    onSecondary = Color(0xFF003047),
+    tertiary = MintGreen,
+    onTertiary = Color(0xFF00332C),
+    background = CreamWhite,
+    onBackground = CharcoalGrey,
+    surface = Color.White,
+    onSurface = CharcoalGrey,
+    surfaceVariant = SurfaceVariantLight,
+    onSurfaceVariant = OnSurfaceVariantLight,
+    outline = LightGrey
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
