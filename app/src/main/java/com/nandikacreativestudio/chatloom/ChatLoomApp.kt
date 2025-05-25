@@ -1,5 +1,6 @@
 package com.nandikacreativestudio.chatloom
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,11 +51,20 @@ import kotlinx.coroutines.launch
 fun ChatLoomApp() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var isSearchFocused by remember { mutableStateOf(false) }
+    var hasExitedSearch by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !isSearchFocused,
         drawerContent = {
-            DrawerLayout()
+            DrawerLayout(
+                isSearchFocused = isSearchFocused,
+                onSearchFocusChange = {
+                    isSearchFocused = it
+                    if (!it) hasExitedSearch = true
+                }
+            )
         }
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -64,6 +75,19 @@ fun ChatLoomApp() {
                     scope.launch { drawerState.open() }
                 }
             )
+        }
+    }
+
+    BackHandler(enabled = drawerState.isOpen && !isSearchFocused) {
+        scope.launch {
+            drawerState.close()
+        }
+    }
+
+    LaunchedEffect(hasExitedSearch, isSearchFocused) {
+        if (!isSearchFocused && hasExitedSearch) {
+            // Trigger ditunda hingga keluar dari fullscreen
+            // Biarkan BackHandler biasa handle drawer close
         }
     }
 }
