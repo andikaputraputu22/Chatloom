@@ -1,7 +1,10 @@
 package com.nandikacreativestudio.chatloom.ui.component
 
+import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,62 +29,88 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
-fun DrawerLayout() {
+fun DrawerLayout(
+    isSearchFocused: Boolean,
+    onSearchFocusChange: (Boolean) -> Unit
+) {
     val colors = MaterialTheme.colorScheme
-    val focusManager = LocalFocusManager.current
-    var isSearchFocused by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .then(
-                if (isSearchFocused) Modifier.fillMaxSize()
-                else Modifier
-                    .width(300.dp)
-                    .fillMaxHeight()
-            )
-            .background(colors.surface)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween
+    BackHandler(enabled = isSearchFocused) {
+        onSearchFocusChange(false)
+    }
+
+    val modifier = if (isSearchFocused) {
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        event.changes.forEach { it.consume() }
+                    }
+                }
+            }
+    } else {
+        Modifier
+            .width(300.dp)
+            .fillMaxHeight()
+    }
+
+    Box(
+        modifier = modifier
     ) {
-        SearchBar(
-            isFocused = isSearchFocused,
-            onFocusChange = { isSearchFocused = it },
-            onRequestClearFocus = { focusManager.clearFocus() }
-        )
-        Column {
-            Text(
-                text = "Save your chat history and personalize your experience.",
-                color = colors.onSurface.copy(alpha = 0.7f),
-                fontSize = 14.sp
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.surface)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            SearchBar(
+                isFocused = isSearchFocused,
+                onFocusChange = onSearchFocusChange,
+                onRequestClearFocus = { onSearchFocusChange(false) }
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp)
-            ) {
+            Column {
                 Text(
-                    text = "Log In or Sign Up",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Save your chat history and personalize your experience.",
+                    color = colors.onSurface.copy(alpha = 0.7f),
+                    fontSize = 14.sp
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {},
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text(
+                        text = "Log In or Sign Up",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
@@ -94,7 +123,17 @@ fun SearchBar(
     onRequestClearFocus: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
     val colors = MaterialTheme.colorScheme
+
+    LaunchedEffect(isFocused) {
+        if (isFocused) {
+            focusRequester.requestFocus()
+        } else {
+            focusManager.clearFocus()
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -129,6 +168,7 @@ fun SearchBar(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
+                .focusRequester(focusRequester)
                 .onFocusChanged {
                     onFocusChange(it.isFocused)
                 },
