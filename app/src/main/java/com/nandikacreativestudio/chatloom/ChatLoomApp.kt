@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Create
@@ -39,7 +41,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -98,6 +104,8 @@ fun ChatScreen(
     onMenuClick: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
+    var hasSendMessage by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = modifier
@@ -105,31 +113,71 @@ fun ChatScreen(
             .background(color = colors.background)
             .padding(24.dp)
     ) {
-        ChatHeader(onMenuClick = onMenuClick)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "What can I help with?",
-                style = MaterialTheme.typography.headlineMedium,
-                color = colors.onBackground,
+        ChatHeader(
+            onMenuClick = onMenuClick,
+            onCreateNewChatClick = {
+                hasSendMessage = false
+                focusManager.clearFocus()
+            }
+        )
+        if (!hasSendMessage) {
+            CreateNewChat(
                 modifier = Modifier
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
+            Suggestion()
+        } else {
+            ChatCompletion(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             )
         }
-        Suggestion()
-        ChatInputBar()
+        ChatInputBar(
+            onSend = { hasSendMessage = true },
+            focusManager = focusManager
+        )
+    }
+}
+
+@Composable
+fun ChatCompletion(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+    ) {
+
+    }
+}
+
+@Composable
+fun CreateNewChat(
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "What can I help with?",
+            style = MaterialTheme.typography.headlineMedium,
+            color = colors.onBackground,
+            modifier = Modifier
+                .fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
 @Composable
 fun ChatHeader(
-    onMenuClick: () -> Unit = {}
+    onMenuClick: () -> Unit = {},
+    onCreateNewChatClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -156,7 +204,7 @@ fun ChatHeader(
         )
         Spacer(modifier = Modifier.weight(1f))
         IconButton(
-            onClick = {},
+            onClick = onCreateNewChatClick,
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
@@ -171,9 +219,13 @@ fun ChatHeader(
 }
 
 @Composable
-fun ChatInputBar() {
+fun ChatInputBar(
+    focusManager: FocusManager,
+    onSend: () -> Unit
+) {
     val colors = MaterialTheme.colorScheme
     var input by remember { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
         modifier = Modifier
@@ -191,10 +243,25 @@ fun ChatInputBar() {
                     .weight(1f)
                     .padding(end = 8.dp),
                 value = input,
-                onValueChange = { input = it }
+                onValueChange = { input = it },
+                onSend = {
+                    if (input.isNotBlank()) {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                        input = ""
+                        onSend()
+                    }
+                }
             )
             IconButton(
-                onClick = {},
+                onClick = {
+                    if (input.isNotBlank()) {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                        input = ""
+                        onSend()
+                    }
+                },
                 modifier = Modifier
                     .background(
                         color = colors.primary.copy(alpha = 0.9f),
@@ -224,7 +291,8 @@ fun ChatTextField(
     modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String = "Ask anything"
+    placeholder: String = "Ask anything",
+    onSend: (() -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -243,6 +311,14 @@ fun ChatTextField(
             .clip(RoundedCornerShape(16.dp)),
         singleLine = true,
         shape = RoundedCornerShape(16.dp),
+        keyboardOptions = KeyboardOptions.Default.copy(
+            imeAction = ImeAction.Send
+        ),
+        keyboardActions = KeyboardActions(
+            onSend = {
+                onSend?.invoke()
+            }
+        ),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = colors.surfaceVariant,
             unfocusedContainerColor = colors.surfaceVariant,
