@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.hilt.android)
+    id("kotlin-kapt")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -27,6 +30,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "BASE_URL", "\"https://api.openai.com/v1/\"")
+            buildConfigField("String", "API_KEY", "\"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\"")
+        }
+        debug {
+            buildConfigField("String", "BASE_URL", "\"https://api.openai.com/v1/\"")
+            buildConfigField("String", "API_KEY", "\"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\"")
         }
     }
     compileOptions {
@@ -38,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -59,6 +69,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
