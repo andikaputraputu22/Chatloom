@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -50,6 +52,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nandikacreativestudio.chatloom.models.Chat
+import com.nandikacreativestudio.chatloom.ui.component.ChatLayout
 import com.nandikacreativestudio.chatloom.ui.component.DrawerLayout
 import kotlinx.coroutines.launch
 
@@ -105,6 +109,7 @@ fun ChatScreen(
 ) {
     val colors = MaterialTheme.colorScheme
     var hasSendMessage by remember { mutableStateOf(false) }
+    var input by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
     Column(
@@ -118,6 +123,7 @@ fun ChatScreen(
             onCreateNewChatClick = {
                 hasSendMessage = false
                 focusManager.clearFocus()
+                input = ""
             }
         )
         if (!hasSendMessage) {
@@ -132,10 +138,16 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .padding(top = 24.dp)
             )
         }
         ChatInputBar(
-            onSend = { hasSendMessage = true },
+            input = input,
+            onInputChange = { input = it },
+            onSend = {
+                hasSendMessage = true
+                input = ""
+            },
             focusManager = focusManager
         )
     }
@@ -145,10 +157,31 @@ fun ChatScreen(
 fun ChatCompletion(
     modifier: Modifier = Modifier
 ) {
+    val colors = MaterialTheme.colorScheme
+    val chats = listOf(
+        Chat("Hallo", isUser = true),
+        Chat("Hallo! Wie kann ich dir heute helfen?", isUser = false),
+        Chat("Saya ingin bertanya", isUser = true),
+        Chat("Tentu, silakan ajukan pertanyaannya. Saya siap membantu!", isUser = false),
+        Chat("Apa itu matahari?", isUser = true),
+        Chat(
+            "Matahari adalah bintang di pusat tata surya kita. Ia adalah bola raksasa yang terdiri dari gas panas, terutama hidrogen (sekitar 74%) dan helium (sekitar 24%), yang menghasilkan energi melalui proses fusi nuklir di intinya.",
+            isUser = false
+        )
+    )
+
     Column(
         modifier = modifier
+            .fillMaxSize()
     ) {
-
+        LazyColumn {
+            items(chats) { chat ->
+                ChatLayout(
+                    chat = chat,
+                    isUser = chat.isUser,
+                    userBubbleColor = colors.surfaceVariant)
+            }
+        }
     }
 }
 
@@ -220,11 +253,12 @@ fun ChatHeader(
 
 @Composable
 fun ChatInputBar(
+    input: String,
+    onInputChange: (String) -> Unit,
     focusManager: FocusManager,
     onSend: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    var input by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
@@ -243,12 +277,11 @@ fun ChatInputBar(
                     .weight(1f)
                     .padding(end = 8.dp),
                 value = input,
-                onValueChange = { input = it },
+                onValueChange = onInputChange,
                 onSend = {
                     if (input.isNotBlank()) {
                         keyboardController?.hide()
                         focusManager.clearFocus()
-                        input = ""
                         onSend()
                     }
                 }
@@ -258,7 +291,6 @@ fun ChatInputBar(
                     if (input.isNotBlank()) {
                         keyboardController?.hide()
                         focusManager.clearFocus()
-                        input = ""
                         onSend()
                     }
                 },
