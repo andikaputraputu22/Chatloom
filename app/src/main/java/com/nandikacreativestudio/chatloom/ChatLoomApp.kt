@@ -2,6 +2,7 @@ package com.nandikacreativestudio.chatloom
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -132,7 +133,12 @@ fun ChatScreen(
                     .fillMaxWidth()
                     .weight(1f)
             )
-            Suggestion()
+            Suggestion(
+                onSuggestionClick = {
+                    input = ""
+                    hasSendMessage = true
+                }
+            )
         } else {
             ChatCompletion(
                 modifier = Modifier
@@ -370,7 +376,9 @@ fun ChatTextField(
 }
 
 @Composable
-fun Suggestion() {
+fun Suggestion(
+    onSuggestionClick: (String) -> Unit
+) {
     val colors = MaterialTheme.colorScheme
 
     Row(
@@ -379,35 +387,33 @@ fun Suggestion() {
             .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .weight(0.5f)
-        ) {
-            SuggestionChip(
-                text = "Why are we allowed to dream?",
-                backgroundColor = colors.tertiary
-            )
-        }
-        Box(
-            modifier = Modifier
-                .weight(0.5f)
-        ) {
-            SuggestionChip(
-                text = "Even though we don't have anything.",
-                backgroundColor = colors.tertiary
-            )
-        }
+        SuggestionChip(
+            text = "Why are we allowed to dream?",
+            backgroundColor = colors.tertiary,
+            modifier = Modifier.weight(0.5f),
+            onClick = onSuggestionClick
+        )
+        SuggestionChip(
+            text = "Even though we don't have anything.",
+            backgroundColor = colors.tertiary,
+            modifier = Modifier.weight(0.5f),
+            onClick = onSuggestionClick
+        )
     }
 }
 
 @Composable
 fun SuggestionChip(
     text: String,
-    backgroundColor: Color
+    backgroundColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: (String) -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = backgroundColor.copy(alpha = 0.15f),
+        modifier = modifier
+            .clickable { onClick(text) }
     ) {
         Text(
             text = text,
