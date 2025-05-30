@@ -8,9 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -84,16 +90,12 @@ fun ChatLoomApp() {
             )
         }
     ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            ChatScreen(
-                modifier = Modifier
-                    .padding(innerPadding),
-                viewModel = viewModel,
-                onMenuClick = {
-                    scope.launch { drawerState.open() }
-                }
-            )
-        }
+        ChatScreen(
+            viewModel = viewModel,
+            onMenuClick = {
+                scope.launch { drawerState.open() }
+            }
+        )
     }
 
     BackHandler(enabled = drawerState.isOpen && !isSearchFocused) {
@@ -112,7 +114,6 @@ fun ChatLoomApp() {
 
 @Composable
 fun ChatScreen(
-    modifier: Modifier = Modifier,
     viewModel: ChatViewModel,
     onMenuClick: () -> Unit = {}
 ) {
@@ -121,53 +122,86 @@ fun ChatScreen(
     var input by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
-    Column(
-        modifier = modifier
+    val density = LocalDensity.current
+    val navBarHeightPx = WindowInsets.navigationBars.getBottom(density)
+    val navBarHeightDp = with(density) { navBarHeightPx.toDp() }
+    val imeHeightPx = WindowInsets.ime.getBottom(density)
+    val imeBottom = with(density) { imeHeightPx.toDp() }
+
+    Scaffold(
+        modifier = Modifier
             .fillMaxSize()
-            .background(color = colors.background)
-            .padding(24.dp)
-    ) {
-        ChatHeader(
-            onMenuClick = onMenuClick,
-            onCreateNewChatClick = {
-                hasSendMessage = false
-                focusManager.clearFocus()
-                input = ""
+            .imePadding(),
+        topBar = {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 16.dp, end = 16.dp)
+                    .background(color = colors.background)
+            ) {
+                ChatHeader(
+                    onMenuClick = onMenuClick,
+                    onCreateNewChatClick = {
+                        hasSendMessage = false
+                        focusManager.clearFocus()
+                        input = ""
+                    }
+                )
             }
-        )
-        if (!hasSendMessage) {
-            CreateNewChat(
+        },
+        bottomBar = {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
-            Suggestion(
-                onSuggestionClick = {
-                    viewModel.fetchChat(it)
-                    hasSendMessage = true
-                    input = ""
-                }
-            )
-        } else {
-            ChatCompletion(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(top = 24.dp, bottom = 16.dp),
-                chatResult = viewModel.chatResult,
-                myChat = viewModel.myChat
-            )
+                    .padding(
+                        bottom = if (imeBottom > 0.dp) 0.dp else navBarHeightDp
+                    )
+            ) {
+                ChatInputBar(
+                    input = input,
+                    onInputChange = { input = it },
+                    onSend = {
+                        hasSendMessage = true
+                        viewModel.fetchChat(input)
+                        input = ""
+                    },
+                    focusManager = focusManager
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
-        ChatInputBar(
-            input = input,
-            onInputChange = { input = it },
-            onSend = {
-                hasSendMessage = true
-                viewModel.fetchChat(input)
-                input = ""
-            },
-            focusManager = focusManager
-        )
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 24.dp)
+        ) {
+            if (!hasSendMessage) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CreateNewChat()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Suggestion(
+                        onSuggestionClick = {
+                            viewModel.fetchChat(it)
+                            hasSendMessage = true
+                            input = ""
+                        }
+                    )
+                }
+            } else {
+                ChatCompletion(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 16.dp),
+                    chatResult = viewModel.chatResult,
+                    myChat = viewModel.myChat
+                )
+            }
+        }
     }
 }
 
@@ -297,7 +331,7 @@ fun ChatInputBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp),
+                .padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ChatTextField(
@@ -416,7 +450,7 @@ fun Suggestion(
             onClick = onSuggestionClick
         )
         SuggestionChip(
-            text = "Even though we don't have anything.",
+            text = "Berikan saya 10 tips memasak babi!",
             backgroundColor = colors.tertiary,
             modifier = Modifier.weight(0.5f),
             onClick = onSuggestionClick
