@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1067528338179",
+    "project_id": "chatloom-a38e7",
+    "storage_bucket": "chatloom-a38e7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1067528338179:android:cebd6e66a08c209fb10736",
+        "android_client_info": {
+          "package_name": "com.nandikacreativestudio.chatloom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYrosm_h6u_0TXQJHYpreFjKY34DQikfA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
