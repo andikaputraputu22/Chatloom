@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,13 +54,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.nandikacreativestudio.chatloom.models.Chat
+import com.nandikacreativestudio.chatloom.models.ChatResponse
 import com.nandikacreativestudio.chatloom.ui.component.ChatLayout
 import com.nandikacreativestudio.chatloom.ui.component.DrawerLayout
+import com.nandikacreativestudio.chatloom.utils.Result
+import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun ChatLoomApp() {
+    val viewModel: ChatViewModel = hiltViewModel()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var isSearchFocused by remember { mutableStateOf(false) }
@@ -82,6 +88,7 @@ fun ChatLoomApp() {
             ChatScreen(
                 modifier = Modifier
                     .padding(innerPadding),
+                viewModel = viewModel,
                 onMenuClick = {
                     scope.launch { drawerState.open() }
                 }
@@ -106,6 +113,7 @@ fun ChatLoomApp() {
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
+    viewModel: ChatViewModel,
     onMenuClick: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
@@ -135,8 +143,9 @@ fun ChatScreen(
             )
             Suggestion(
                 onSuggestionClick = {
-                    input = ""
+                    viewModel.fetchChat(it)
                     hasSendMessage = true
+                    input = ""
                 }
             )
         } else {
@@ -144,7 +153,9 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(top = 24.dp)
+                    .padding(top = 24.dp, bottom = 16.dp),
+                chatResult = viewModel.chatResult,
+                myChat = viewModel.myChat
             )
         }
         ChatInputBar(
@@ -152,6 +163,7 @@ fun ChatScreen(
             onInputChange = { input = it },
             onSend = {
                 hasSendMessage = true
+                viewModel.fetchChat(input)
                 input = ""
             },
             focusManager = focusManager
@@ -161,33 +173,43 @@ fun ChatScreen(
 
 @Composable
 fun ChatCompletion(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    chatResult: Result<ChatResponse>,
+    myChat: String
 ) {
     val colors = MaterialTheme.colorScheme
-    val chats = listOf(
-        Chat("Hallo", isUser = true),
-        Chat("Hallo! Wie kann ich dir heute helfen?", isUser = false),
-        Chat("Saya ingin bertanya", isUser = true),
-        Chat("Tentu, silakan ajukan pertanyaannya. Saya siap membantu!", isUser = false),
-        Chat("Apa itu matahari?", isUser = true),
-        Chat(
-            "Matahari adalah bintang di pusat tata surya kita. Ia adalah bola raksasa yang terdiri dari gas panas, terutama hidrogen (sekitar 74%) dan helium (sekitar 24%), yang menghasilkan energi melalui proses fusi nuklir di intinya.",
-            isUser = false
-        )
-    )
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-    ) {
-        LazyColumn {
-            items(chats) { chat ->
-                ChatLayout(
-                    chat = chat,
-                    isUser = chat.isUser,
-                    userBubbleColor = colors.surfaceVariant)
+    when (chatResult) {
+        is Result.Loading -> {
+            Box(
+                modifier = modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
         }
+        is Result.Success -> {
+            val userChat = Chat(text = myChat, isUser = true)
+            val aiChat = Chat(
+                text = chatResult.data.choices[0].message.content,
+                isUser = false
+            )
+            val chats = listOf(userChat, aiChat)
+
+            LazyColumn(
+                modifier = modifier
+                    .fillMaxSize()
+            ) {
+                items(chats) { chat ->
+                    ChatLayout(
+                        chat = chat,
+                        isUser = chat.isUser,
+                        userBubbleColor = colors.surfaceVariant)
+                }
+            }
+        }
+        is Result.Error -> {}
     }
 }
 
