@@ -1,19 +1,34 @@
 package com.nandikacreativestudio.chatloom.repository
 
+import com.google.firebase.firestore.DocumentChange
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.nandikacreativestudio.chatloom.api.ApiService
+import com.nandikacreativestudio.chatloom.models.Chat
 import com.nandikacreativestudio.chatloom.models.ChatResponse
 import com.nandikacreativestudio.chatloom.models.request.ChatMessage
 import com.nandikacreativestudio.chatloom.models.request.ChatRequest
+import com.nandikacreativestudio.chatloom.utils.Constants
 import com.nandikacreativestudio.chatloom.utils.Result
+import com.nandikacreativestudio.chatloom.utils.Utils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class ChatRepository @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val utils: Utils
 ) {
 
+    private val db = Firebase.firestore
+    private val existingIds = mutableSetOf<String>()
+
     suspend fun fetchChatCompletion(
+        roomId: String,
         chat: String
     ): Result<ChatResponse> = withContext(Dispatchers.IO) {
         val messages = listOf(
@@ -33,14 +48,66 @@ class ChatRepository @Inject constructor(
         try {
             val response = apiService.getChatCompletion(request)
             if (response.isSuccessful) {
-                response.body()?.let {
-                    Result.Success(it)
-                } ?: Result.Error("Response body is null")
+                val body = response.body()
+                if (body != null) {
+                    insertChatToFirebase(
+                        roomId,
+                        body.choices.first().message.content,
+                        Constants.ROLE_ASSISTANT
+                    )
+                    Result.Success(body)
+                } else {
+                    Result.Error("Response body is null")
+                }
             } else {
                 Result.Error("Failed to fetch data: ${response.code()}")
             }
         } catch (e: Exception) {
             Result.Error("Exception occurred: ${e.message}")
         }
+    }
+
+    suspend fun insertChatToFirebase(
+        roomId: String,
+        text: String,
+        role: Int
+    ) {
+        val chat = hashMapOf(
+            "text" to text,
+            "role" to utils.getRole(role),
+            "timestamp" to FieldValue.serverTimestamp()
+        )
+        db.collection("chat_rooms")
+            .document(roomId)
+            .collection("chats")
+            .add(chat)
+            .await()
+    }
+
+    fun observeChats(
+        roomId: String,
+        onChats: (List<Chat>) -> Unit
+    ): ListenerRegistration {
+        return db.collection("chat_rooms")
+            .document(roomId)
+            .collection("chats")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    return@addSnapshotListener
+                }
+
+                val newChats = value?.documentChanges
+                    ?.filter { it.type == DocumentChange.Type.ADDED }
+                    ?.mapNotNull { change ->
+                        val doc = change.document
+                        val chat = doc.toObject(Chat::class.java).copy(id = doc.id)
+                        if (existingIds.add(chat.id)) chat else null
+                    } ?: emptyList()
+
+                if (newChats.isNotEmpty()) {
+                    onChats(newChats)
+                }
+            }
     }
 }

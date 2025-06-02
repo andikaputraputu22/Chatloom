@@ -1,6 +1,10 @@
 package com.nandikacreativestudio.chatloom.models
 
+import com.google.firebase.Timestamp
+
 data class Chat(
-    val text: String,
-    val isUser: Boolean
+    val id: String = "",
+    val text: String = "",
+    val role: String = "",
+    val timestamp: Timestamp? = null
 )

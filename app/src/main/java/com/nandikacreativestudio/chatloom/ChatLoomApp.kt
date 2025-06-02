@@ -19,7 +19,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +42,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,11 +62,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.nandikacreativestudio.chatloom.models.Chat
-import com.nandikacreativestudio.chatloom.models.ChatResponse
 import com.nandikacreativestudio.chatloom.ui.component.ChatLayout
 import com.nandikacreativestudio.chatloom.ui.component.DrawerLayout
-import com.nandikacreativestudio.chatloom.utils.Result
+import com.nandikacreativestudio.chatloom.ui.component.LoadingChatLayout
 import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 
@@ -128,6 +127,21 @@ fun ChatScreen(
     val imeHeightPx = WindowInsets.ime.getBottom(density)
     val imeBottom = with(density) { imeHeightPx.toDp() }
 
+    val isLoading by viewModel.isLoading.collectAsState()
+    val chats by viewModel.chats.collectAsState()
+    val listState = rememberLazyListState()
+    val lastIndex = chats.lastIndex
+
+    LaunchedEffect(Unit) {
+        viewModel.observeChats("test123")
+    }
+
+    LaunchedEffect(chats) {
+        if (lastIndex >= 0) {
+            listState.animateScrollToItem(lastIndex)
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -161,12 +175,12 @@ fun ChatScreen(
                     onInputChange = { input = it },
                     onSend = {
                         hasSendMessage = true
-                        viewModel.fetchChat(input)
+                        viewModel.sendUserMessage("test123", input)
                         input = ""
                     },
                     focusManager = focusManager
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     ) { innerPadding ->
@@ -186,64 +200,42 @@ fun ChatScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Suggestion(
                         onSuggestionClick = {
-                            viewModel.fetchChat(it)
+                            viewModel.sendUserMessage("test123", it)
                             hasSendMessage = true
                             input = ""
                         }
                     )
                 }
             } else {
-                ChatCompletion(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(top = 16.dp),
-                    chatResult = viewModel.chatResult,
-                    myChat = viewModel.myChat
-                )
-            }
-        }
-    }
-}
+                    state = listState
+                ) {
+                    itemsIndexed(chats) { index, chat ->
+                        ChatLayout(
+                            chat = chat,
+                            isUser = chat.role == "user",
+                            userBubbleColor = colors.surfaceVariant
+                        )
 
-@Composable
-fun ChatCompletion(
-    modifier: Modifier = Modifier,
-    chatResult: Result<ChatResponse>,
-    myChat: String
-) {
-    val colors = MaterialTheme.colorScheme
-
-    when (chatResult) {
-        is Result.Loading -> {
-            Box(
-                modifier = modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        is Result.Success -> {
-            val userChat = Chat(text = myChat, isUser = true)
-            val aiChat = Chat(
-                text = chatResult.data.choices[0].message.content,
-                isUser = false
-            )
-            val chats = listOf(userChat, aiChat)
-
-            LazyColumn(
-                modifier = modifier
-                    .fillMaxSize()
-            ) {
-                items(chats) { chat ->
-                    ChatLayout(
-                        chat = chat,
-                        isUser = chat.isUser,
-                        userBubbleColor = colors.surfaceVariant)
+                        val isLastUserMessage = chat.role == "user" &&
+                                (index == chats.lastIndex || chats.getOrNull(index + 1)?.role != "assistant")
+                        if (isLastUserMessage && isLoading) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                LoadingChatLayout()
+                            }
+                        }
+                    }
                 }
             }
         }
-        is Result.Error -> {}
     }
 }
 
@@ -450,7 +442,7 @@ fun Suggestion(
             onClick = onSuggestionClick
         )
         SuggestionChip(
-            text = "Berikan saya 10 tips memasak babi!",
+            text = "Even though we don't have anything.",
             backgroundColor = colors.tertiary,
             modifier = Modifier.weight(0.5f),
             onClick = onSuggestionClick
