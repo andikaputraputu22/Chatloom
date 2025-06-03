@@ -3,6 +3,7 @@ package com.nandikacreativestudio.chatloom.ui.component
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,12 +48,15 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nandikacreativestudio.chatloom.models.ChatRoom
 
 @SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
 fun DrawerLayout(
     isSearchFocused: Boolean,
-    onSearchFocusChange: (Boolean) -> Unit
+    onSearchFocusChange: (Boolean) -> Unit,
+    chatRooms: List<ChatRoom>,
+    onRoomClick: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -91,6 +97,35 @@ fun DrawerLayout(
                 onFocusChange = onSearchFocusChange,
                 onRequestClearFocus = { onSearchFocusChange(false) }
             )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 16.dp)
+            ) {
+                Text(
+                    text = "History Chats",
+                    color = colors.onSurface,
+                    fontSize = 12.sp
+                )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 8.dp)
+                ) {
+                    items(chatRooms) { room ->
+                        Text(
+                            text = room.title,
+                            color = colors.onSurface,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .clickable { onRoomClick(room.id) }
+                        )
+                    }
+                }
+            }
             Column {
                 Text(
                     text = "Save your chat history and personalize your experience.",
@@ -180,6 +215,24 @@ fun SearchBar(
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
             )
+        )
+    }
+}
+
+@Composable
+fun HistoryChat(
+    title: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier
+                .padding(bottom = 8.dp)
         )
     }
 }

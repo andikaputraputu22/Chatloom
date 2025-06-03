@@ -8,12 +8,14 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.ListenerRegistration
 import com.nandikacreativestudio.chatloom.models.Chat
+import com.nandikacreativestudio.chatloom.models.ChatRoom
 import com.nandikacreativestudio.chatloom.repository.ChatRepository
 import com.nandikacreativestudio.chatloom.utils.Constants
 import com.nandikacreativestudio.chatloom.utils.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,13 +28,19 @@ class ChatViewModel @Inject constructor(
     private val _chats = MutableStateFlow<List<Chat>>(emptyList())
     val chats: StateFlow<List<Chat>> = _chats
 
+    private val _currentRoomId = MutableStateFlow<String?>(null)
+    val currentRoomId: StateFlow<String?> = _currentRoomId.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
+    val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()
 
     private var lastUserMessageTime: Timestamp? = null
     private var isWaitingAssistant by mutableStateOf(false)
 
-    fun observeChats(roomId: String) {
+    private fun observeChats(roomId: String) {
         listenerRegistration?.remove()
         listenerRegistration = chatRepository.observeChats(roomId) { newChats ->
             _chats.value += newChats
@@ -49,11 +57,18 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun sendUserMessage(roomId: String, text: String) {
+    fun sendUserMessage(text: String) {
         lastUserMessageTime = Timestamp.now()
         isWaitingAssistant = true
         _isLoading.value = true
         viewModelScope.launch {
+            val roomId = _currentRoomId.value ?: run {
+                val newRoomId = chatRepository.createChatRoom(text)
+                _currentRoomId.value = newRoomId
+                observeChats(newRoomId)
+                newRoomId
+            }
+
             chatRepository.insertChatToFirebase(
                 roomId = roomId,
                 text = text,
@@ -73,9 +88,23 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun fetchChatRooms() {
+        viewModelScope.launch {
+            val rooms = chatRepository.getChatRoom()
+            _chatRooms.value = rooms
+        }
+    }
+
+    fun setCurrentRoomId(id: String?) {
+        _currentRoomId.value = id
+    }
+
+    fun clearChat() {
+        _chats.value = emptyList()
+    }
+
     override fun onCleared() {
         listenerRegistration?.remove()
         super.onCleared()
     }
 }
-
