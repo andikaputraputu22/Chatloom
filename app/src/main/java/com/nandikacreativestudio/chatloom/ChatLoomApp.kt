@@ -76,6 +76,12 @@ fun ChatLoomApp() {
     var isSearchFocused by remember { mutableStateOf(false) }
     var hasExitedSearch by remember { mutableStateOf(false) }
 
+    LaunchedEffect(drawerState.isOpen) {
+        if (drawerState.isOpen) {
+            viewModel.fetchChatRooms()
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = !isSearchFocused,
@@ -85,6 +91,10 @@ fun ChatLoomApp() {
                 onSearchFocusChange = {
                     isSearchFocused = it
                     if (!it) hasExitedSearch = true
+                },
+                chatRooms = viewModel.chatRooms.collectAsState().value,
+                onRoomClick = { roomId ->
+
                 }
             )
         }
@@ -128,13 +138,16 @@ fun ChatScreen(
     val imeBottom = with(density) { imeHeightPx.toDp() }
 
     val isLoading by viewModel.isLoading.collectAsState()
+    val currentRoomId by viewModel.currentRoomId.collectAsState()
     val chats by viewModel.chats.collectAsState()
     val listState = rememberLazyListState()
     val lastIndex = chats.lastIndex
 
-    LaunchedEffect(Unit) {
-        viewModel.observeChats("test123")
-    }
+//    LaunchedEffect(currentRoomId) {
+//        currentRoomId?.let {
+//            viewModel.observeChats(it)
+//        }
+//    }
 
     LaunchedEffect(chats) {
         if (lastIndex >= 0) {
@@ -159,6 +172,8 @@ fun ChatScreen(
                         hasSendMessage = false
                         focusManager.clearFocus()
                         input = ""
+                        viewModel.setCurrentRoomId(null)
+                        viewModel.clearChat()
                     }
                 )
             }
@@ -175,7 +190,7 @@ fun ChatScreen(
                     onInputChange = { input = it },
                     onSend = {
                         hasSendMessage = true
-                        viewModel.sendUserMessage("test123", input)
+                        viewModel.sendUserMessage(input)
                         input = ""
                     },
                     focusManager = focusManager
@@ -200,7 +215,7 @@ fun ChatScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Suggestion(
                         onSuggestionClick = {
-                            viewModel.sendUserMessage("test123", it)
+                            viewModel.sendUserMessage(it)
                             hasSendMessage = true
                             input = ""
                         }

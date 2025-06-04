@@ -9,6 +9,7 @@ import com.google.firebase.ktx.Firebase
 import com.nandikacreativestudio.chatloom.api.ApiService
 import com.nandikacreativestudio.chatloom.models.Chat
 import com.nandikacreativestudio.chatloom.models.ChatResponse
+import com.nandikacreativestudio.chatloom.models.ChatRoom
 import com.nandikacreativestudio.chatloom.models.request.ChatMessage
 import com.nandikacreativestudio.chatloom.models.request.ChatRequest
 import com.nandikacreativestudio.chatloom.utils.Constants
@@ -109,5 +110,34 @@ class ChatRepository @Inject constructor(
                     onChats(newChats)
                 }
             }
+    }
+
+    suspend fun createChatRoom(title: String): String {
+        val room = hashMapOf(
+            "title" to title,
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+        val docRef = db.collection("chat_rooms")
+            .add(room)
+            .await()
+
+        return docRef.id
+    }
+
+    suspend fun getChatRoom(): List<ChatRoom> {
+        val snapshot = db.collection("chat_rooms")
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .get()
+            .await()
+
+        return snapshot.documents.mapNotNull { doc ->
+            val title = doc.getString("title") ?: return@mapNotNull null
+            val createdAt = doc.getTimestamp("createdAt")
+            ChatRoom(
+                id = doc.id,
+                title = title,
+                createdAt = createdAt
+            )
+        }
     }
 }
