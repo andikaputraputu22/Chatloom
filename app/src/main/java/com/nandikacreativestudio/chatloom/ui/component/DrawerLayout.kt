@@ -56,6 +56,7 @@ fun DrawerLayout(
     isSearchFocused: Boolean,
     onSearchFocusChange: (Boolean) -> Unit,
     chatRooms: List<ChatRoom>,
+    currentRoomId: String?,
     onRoomClick: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -106,7 +107,9 @@ fun DrawerLayout(
                 Text(
                     text = "History Chats",
                     color = colors.onSurface,
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .padding(start = 12.dp)
                 )
                 LazyColumn(
                     modifier = Modifier
@@ -114,13 +117,22 @@ fun DrawerLayout(
                         .padding(top = 8.dp)
                 ) {
                     items(chatRooms) { room ->
+                        val isSelected = room.id == currentRoomId
+                        val backgroundColor = if (isSelected) colors.primary.copy(alpha = 0.1f)
+                        else Color.Transparent
+                        val textColor = if (isSelected) colors.primary else colors.onSurface
+
                         Text(
                             text = room.title,
-                            color = colors.onSurface,
+                            color = textColor,
                             maxLines = 1,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp)
+                                .background(
+                                    color = backgroundColor,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(vertical = 8.dp, horizontal = 12.dp)
                                 .clickable { onRoomClick(room.id) }
                         )
                     }
@@ -215,24 +227,6 @@ fun SearchBar(
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
             )
-        )
-    }
-}
-
-@Composable
-fun HistoryChat(
-    title: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            modifier = Modifier
-                .padding(bottom = 8.dp)
         )
     }
 }

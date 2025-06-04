@@ -75,6 +75,7 @@ fun ChatLoomApp() {
     val scope = rememberCoroutineScope()
     var isSearchFocused by remember { mutableStateOf(false) }
     var hasExitedSearch by remember { mutableStateOf(false) }
+    val currentRoomId by viewModel.currentRoomId.collectAsState()
 
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
@@ -93,6 +94,7 @@ fun ChatLoomApp() {
                     if (!it) hasExitedSearch = true
                 },
                 chatRooms = viewModel.chatRooms.collectAsState().value,
+                currentRoomId = currentRoomId,
                 onRoomClick = { roomId ->
                     viewModel.onRoomClick(roomId)
                     viewModel.setHasSendMessage(true)
