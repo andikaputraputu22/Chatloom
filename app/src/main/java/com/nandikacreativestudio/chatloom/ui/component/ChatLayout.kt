@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.colintheshots.twain.MarkdownText
 import com.nandikacreativestudio.chatloom.models.Chat
 
 @Composable
@@ -47,8 +47,9 @@ fun ChatLayout(
                     }
                 )
         ) {
-            Text(
-                text = chat.text,
+            MarkdownText(
+                markdown = chat.text,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyLarge
             )
         }

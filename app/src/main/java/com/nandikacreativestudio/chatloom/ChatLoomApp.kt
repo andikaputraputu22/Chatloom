@@ -94,7 +94,9 @@ fun ChatLoomApp() {
                 },
                 chatRooms = viewModel.chatRooms.collectAsState().value,
                 onRoomClick = { roomId ->
-
+                    viewModel.onRoomClick(roomId)
+                    viewModel.setHasSendMessage(true)
+                    scope.launch { drawerState.close() }
                 }
             )
         }
@@ -127,7 +129,7 @@ fun ChatScreen(
     onMenuClick: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
-    var hasSendMessage by remember { mutableStateOf(false) }
+    val hasSendMessage by viewModel.hasSendMessage.collectAsState()
     var input by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
@@ -169,10 +171,8 @@ fun ChatScreen(
                 ChatHeader(
                     onMenuClick = onMenuClick,
                     onCreateNewChatClick = {
-                        hasSendMessage = false
                         focusManager.clearFocus()
                         input = ""
-                        viewModel.setCurrentRoomId(null)
                         viewModel.clearChat()
                     }
                 )
@@ -189,7 +189,6 @@ fun ChatScreen(
                     input = input,
                     onInputChange = { input = it },
                     onSend = {
-                        hasSendMessage = true
                         viewModel.sendUserMessage(input)
                         input = ""
                     },
@@ -216,7 +215,6 @@ fun ChatScreen(
                     Suggestion(
                         onSuggestionClick = {
                             viewModel.sendUserMessage(it)
-                            hasSendMessage = true
                             input = ""
                         }
                     )

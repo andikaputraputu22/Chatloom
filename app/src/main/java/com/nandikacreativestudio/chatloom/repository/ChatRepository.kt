@@ -140,4 +140,16 @@ class ChatRepository @Inject constructor(
             )
         }
     }
+
+    suspend fun getChatOnce(roomId: String): List<Chat> {
+        return db.collection("chat_rooms")
+            .document(roomId)
+            .collection("chats")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .get()
+            .await()
+            .documents.mapNotNull { doc ->
+                doc.toObject(Chat::class.java)?.copy(id = doc.id)
+            }
+    }
 }

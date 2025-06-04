@@ -25,11 +25,15 @@ class ChatViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var listenerRegistration: ListenerRegistration? = null
+    private val _chatCache = mutableMapOf<String, MutableList<Chat>>()
     private val _chats = MutableStateFlow<List<Chat>>(emptyList())
     val chats: StateFlow<List<Chat>> = _chats
 
     private val _currentRoomId = MutableStateFlow<String?>(null)
     val currentRoomId: StateFlow<String?> = _currentRoomId.asStateFlow()
+
+    private val _hasSendMessage = MutableStateFlow(false)
+    val hasSendMessage: StateFlow<Boolean> = _hasSendMessage
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -42,8 +46,24 @@ class ChatViewModel @Inject constructor(
 
     private fun observeChats(roomId: String) {
         listenerRegistration?.remove()
+
+        viewModelScope.launch {
+            if (_chatCache[roomId] == null) {
+                val existingChats = chatRepository.getChatOnce(roomId)
+                _chatCache[roomId] = existingChats.toMutableList()
+                _chats.value = existingChats
+            } else {
+                _chats.value = _chatCache[roomId] ?: emptyList()
+            }
+        }
+
         listenerRegistration = chatRepository.observeChats(roomId) { newChats ->
-            _chats.value += newChats
+            val currentChats = _chatCache[roomId]?.toMutableList() ?: mutableListOf()
+            val existingIds = currentChats.map { it.id }.toSet()
+            val filteredNewChats = newChats.filter { it.id !in existingIds }
+            currentChats += filteredNewChats
+            _chatCache[roomId] = currentChats
+            _chats.value = currentChats
 
             val assistantReply = lastUserMessageTime?.let { lastUser ->
                 newChats.any {
@@ -61,14 +81,16 @@ class ChatViewModel @Inject constructor(
         lastUserMessageTime = Timestamp.now()
         isWaitingAssistant = true
         _isLoading.value = true
+        _hasSendMessage.value = true
+
         viewModelScope.launch {
             val roomId = _currentRoomId.value ?: run {
                 val newRoomId = chatRepository.createChatRoom(text)
                 _currentRoomId.value = newRoomId
-                observeChats(newRoomId)
                 newRoomId
             }
 
+            observeChats(roomId)
             chatRepository.insertChatToFirebase(
                 roomId = roomId,
                 text = text,
@@ -88,6 +110,16 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun onRoomClick(roomId: String) {
+        if (_currentRoomId.value == roomId) {
+            return
+        }
+        listenerRegistration?.remove()
+        _currentRoomId.value = roomId
+        _chats.value = emptyList()
+        observeChats(roomId)
+    }
+
     fun fetchChatRooms() {
         viewModelScope.launch {
             val rooms = chatRepository.getChatRoom()
@@ -95,11 +127,16 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun setCurrentRoomId(id: String?) {
-        _currentRoomId.value = id
+    fun setHasSendMessage(value: Boolean) {
+        _hasSendMessage.value = value
     }
 
     fun clearChat() {
+        _hasSendMessage.value = false
+        _currentRoomId.value?.let { _chatCache.remove(it) }
+        listenerRegistration?.remove()
+        listenerRegistration = null
+        _currentRoomId.value = null
         _chats.value = emptyList()
     }
 
