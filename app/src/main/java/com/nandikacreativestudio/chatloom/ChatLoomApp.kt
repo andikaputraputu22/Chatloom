@@ -66,6 +66,7 @@ import com.nandikacreativestudio.chatloom.ui.component.ChatLayout
 import com.nandikacreativestudio.chatloom.ui.component.DrawerLayout
 import com.nandikacreativestudio.chatloom.ui.component.LoadingChatLayout
 import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -75,6 +76,8 @@ fun ChatLoomApp() {
     val scope = rememberCoroutineScope()
     var isSearchFocused by remember { mutableStateOf(false) }
     var hasExitedSearch by remember { mutableStateOf(false) }
+    val currentRoomId by viewModel.currentRoomId.collectAsState()
+    var isReturningFromSearch by remember { mutableStateOf(false) }
 
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
@@ -93,10 +96,16 @@ fun ChatLoomApp() {
                     if (!it) hasExitedSearch = true
                 },
                 chatRooms = viewModel.chatRooms.collectAsState().value,
+                currentRoomId = currentRoomId,
                 onRoomClick = { roomId ->
                     viewModel.onRoomClick(roomId)
                     viewModel.setHasSendMessage(true)
-                    scope.launch { drawerState.close() }
+                    if (isSearchFocused) {
+                        isSearchFocused = false
+                        isReturningFromSearch = true
+                    } else {
+                        scope.launch { drawerState.close() }
+                    }
                 }
             )
         }
@@ -119,6 +128,14 @@ fun ChatLoomApp() {
         if (!isSearchFocused && hasExitedSearch) {
             // Trigger ditunda hingga keluar dari fullscreen
             // Biarkan BackHandler biasa handle drawer close
+        }
+    }
+
+    LaunchedEffect(isReturningFromSearch, isSearchFocused) {
+        if (isReturningFromSearch && !isSearchFocused) {
+            delay(300)
+            scope.launch { drawerState.close() }
+            isReturningFromSearch = false
         }
     }
 }
@@ -153,7 +170,10 @@ fun ChatScreen(
 
     LaunchedEffect(chats) {
         if (lastIndex >= 0) {
-            listState.animateScrollToItem(lastIndex)
+            listState.animateScrollToItem(
+                index = lastIndex,
+                scrollOffset = Int.MAX_VALUE
+            )
         }
     }
 
