@@ -38,6 +38,9 @@ class ChatViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _isLoadingDelete = MutableStateFlow(false)
+    val isLoadingDelete: StateFlow<Boolean> = _isLoadingDelete
+
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()
 
@@ -106,6 +109,23 @@ class ChatViewModel @Inject constructor(
                 else -> {
                     _isLoading.value = false
                 }
+            }
+        }
+    }
+
+    fun deleteChatRoom(roomId: String) {
+        viewModelScope.launch {
+            _isLoadingDelete.value = true
+            try {
+                chatRepository.deleteChatRoom(roomId)
+                if (_currentRoomId.value == roomId) {
+                    clearChat()
+                }
+                val rooms = chatRepository.getChatRoom()
+                _chatRooms.value = rooms
+            } catch (_: Exception) {}
+            finally {
+                _isLoadingDelete.value = false
             }
         }
     }

@@ -2,9 +2,11 @@ package com.nandikacreativestudio.chatloom.ui.component
 
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,11 +30,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -58,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import com.nandikacreativestudio.chatloom.R
 import com.nandikacreativestudio.chatloom.models.ChatRoom
 
+@OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
 fun DrawerLayout(
@@ -65,9 +70,13 @@ fun DrawerLayout(
     onSearchFocusChange: (Boolean) -> Unit,
     chatRooms: List<ChatRoom>,
     currentRoomId: String?,
-    onRoomClick: (String) -> Unit
+    onRoomClick: (String) -> Unit,
+    onDeleteRoom: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    var selectedRoomToDelete by remember {
+        mutableStateOf<ChatRoom?>(null)
+    }
 
     BackHandler(enabled = isSearchFocused) {
         onSearchFocusChange(false)
@@ -141,7 +150,10 @@ fun DrawerLayout(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(vertical = 8.dp, horizontal = 12.dp)
-                                .clickable { onRoomClick(room.id) }
+                                .combinedClickable(
+                                    onClick = { onRoomClick(room.id) },
+                                    onLongClick = { selectedRoomToDelete = room }
+                                )
                         )
                     }
                 }
@@ -195,6 +207,31 @@ fun DrawerLayout(
 //                    )
 //                }
 //            }
+        }
+
+        selectedRoomToDelete?.let { room ->
+            AlertDialog(
+                onDismissRequest = { selectedRoomToDelete = null },
+                title = {
+                    Text(text = "Delete Chat")
+                },
+                text = {
+                    Text(text = "Are you sure want to delete this chat?")
+                },
+                confirmButton = { 
+                    TextButton(onClick = {
+                        onDeleteRoom(room.id)
+                        selectedRoomToDelete = null
+                    }) {
+                        Text(text = "Delete", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { selectedRoomToDelete = null }) {
+                        Text(text = "Cancel")
+                    }
+                }
+            )
         }
     }
 }

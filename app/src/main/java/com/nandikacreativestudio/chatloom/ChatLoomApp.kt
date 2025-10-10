@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nandikacreativestudio.chatloom.ui.component.ChatLayout
+import com.nandikacreativestudio.chatloom.ui.component.CircularProgress
 import com.nandikacreativestudio.chatloom.ui.component.DrawerLayout
 import com.nandikacreativestudio.chatloom.ui.component.LoadingChatLayout
 import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
@@ -78,6 +79,7 @@ fun ChatLoomApp() {
     var hasExitedSearch by remember { mutableStateOf(false) }
     val currentRoomId by viewModel.currentRoomId.collectAsState()
     var isReturningFromSearch by remember { mutableStateOf(false) }
+    val isLoadingDelete by viewModel.isLoadingDelete.collectAsState()
 
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
@@ -106,6 +108,9 @@ fun ChatLoomApp() {
                     } else {
                         scope.launch { drawerState.close() }
                     }
+                },
+                onDeleteRoom = { roomId ->
+                    viewModel.deleteChatRoom(roomId)
                 }
             )
         }
@@ -137,6 +142,10 @@ fun ChatLoomApp() {
             scope.launch { drawerState.close() }
             isReturningFromSearch = false
         }
+    }
+    
+    if (isLoadingDelete) {
+        CircularProgress(title = "Deleting...")
     }
 }
 
