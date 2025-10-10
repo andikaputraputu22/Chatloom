@@ -77,6 +77,14 @@ fun DrawerLayout(
     var selectedRoomToDelete by remember {
         mutableStateOf<ChatRoom?>(null)
     }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredRooms = remember(searchQuery, chatRooms) {
+        if (searchQuery.isBlank()) chatRooms
+        else chatRooms.filter {
+            it.title.contains(searchQuery, ignoreCase = true)
+        }
+    }
 
     BackHandler(enabled = isSearchFocused) {
         onSearchFocusChange(false)
@@ -111,6 +119,8 @@ fun DrawerLayout(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             SearchBar(
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
                 isFocused = isSearchFocused,
                 onFocusChange = onSearchFocusChange,
                 onRequestClearFocus = { onSearchFocusChange(false) }
@@ -133,7 +143,7 @@ fun DrawerLayout(
                         .fillMaxSize()
                         .padding(top = 8.dp)
                 ) {
-                    items(chatRooms) { room ->
+                    items(filteredRooms) { room ->
                         val isSelected = room.id == currentRoomId
                         val backgroundColor = if (isSelected) colors.primary.copy(alpha = 0.1f)
                         else Color.Transparent
@@ -238,11 +248,12 @@ fun DrawerLayout(
 
 @Composable
 fun SearchBar(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     isFocused: Boolean,
     onFocusChange: (Boolean) -> Unit,
     onRequestClearFocus: () -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val colors = MaterialTheme.colorScheme
@@ -262,7 +273,7 @@ fun SearchBar(
     ) {
         TextField(
             value = searchQuery,
-            onValueChange = { searchQuery = it },
+            onValueChange = onSearchQueryChange,
             placeholder = {
                 Text(
                     text = "Search",
