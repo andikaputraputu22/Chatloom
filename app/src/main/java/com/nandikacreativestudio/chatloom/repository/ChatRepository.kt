@@ -152,4 +152,20 @@ class ChatRepository @Inject constructor(
                 doc.toObject(Chat::class.java)?.copy(id = doc.id)
             }
     }
+
+    suspend fun deleteChatRoom(roomId: String) {
+        val roomRef = db.collection("chat_rooms").document(roomId)
+        val chatsRef = roomRef.collection("chats")
+        while (true) {
+            val snapshot = chatsRef.limit(500).get().await()
+            if (snapshot.isEmpty) break
+
+            val batch = db.batch()
+            for (doc in snapshot.documents) {
+                batch.delete(doc.reference)
+            }
+            batch.commit().await()
+        }
+        roomRef.delete().await()
+    }
 }
