@@ -21,11 +21,13 @@ object AppModule {
     @Provides
     fun provideChatRepository(
         apiService: ApiService,
-        utils: Utils
+        utils: Utils,
+        firebaseAuth: FirebaseAuth
     ): ChatRepository {
         return ChatRepository(
             apiService,
-            utils
+            utils,
+            firebaseAuth
         )
     }
 

@@ -1,5 +1,6 @@
 package com.nandikacreativestudio.chatloom.repository
 
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
@@ -22,7 +23,8 @@ import javax.inject.Inject
 
 class ChatRepository @Inject constructor(
     private val apiService: ApiService,
-    private val utils: Utils
+    private val utils: Utils,
+    private val firebaseAuth: FirebaseAuth
 ) {
 
     private val db = Firebase.firestore
@@ -113,9 +115,11 @@ class ChatRepository @Inject constructor(
     }
 
     suspend fun createChatRoom(title: String): String {
+        val user = firebaseAuth.currentUser
         val room = hashMapOf(
             "title" to title,
-            "createdAt" to FieldValue.serverTimestamp()
+            "createdAt" to FieldValue.serverTimestamp(),
+            "ownerId" to (user?.uid ?: "guest")
         )
         val docRef = db.collection("chat_rooms")
             .add(room)
@@ -125,7 +129,9 @@ class ChatRepository @Inject constructor(
     }
 
     suspend fun getChatRoom(): List<ChatRoom> {
+        val user = firebaseAuth.currentUser ?: return emptyList()
         val snapshot = db.collection("chat_rooms")
+            .whereEqualTo("ownerId", user.uid)
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .get()
             .await()
