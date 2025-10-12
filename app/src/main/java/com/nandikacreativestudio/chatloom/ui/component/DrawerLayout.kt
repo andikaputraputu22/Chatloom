@@ -3,9 +3,7 @@ package com.nandikacreativestudio.chatloom.ui.component
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -41,6 +39,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,23 +58,31 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.nandikacreativestudio.chatloom.R
 import com.nandikacreativestudio.chatloom.models.ChatRoom
+import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
 fun DrawerLayout(
+    viewModel: ChatViewModel,
     isSearchFocused: Boolean,
     onSearchFocusChange: (Boolean) -> Unit,
     chatRooms: List<ChatRoom>,
     currentRoomId: String?,
     onRoomClick: (String) -> Unit,
-    onDeleteRoom: (String) -> Unit
+    onDeleteRoom: (String) -> Unit,
+    onLoginClick: () -> Unit,
+    onLogoutClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     var selectedRoomToDelete by remember {
         mutableStateOf<ChatRoom?>(null)
+    }
+    var showLogoutDialog by remember {
+        mutableStateOf(false)
     }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -85,6 +92,9 @@ fun DrawerLayout(
             it.title.contains(searchQuery, ignoreCase = true)
         }
     }
+
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val userData by viewModel.userData.collectAsState()
 
     BackHandler(enabled = isSearchFocused) {
         onSearchFocusChange(false)
@@ -168,55 +178,61 @@ fun DrawerLayout(
                     }
                 }
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.default_photo_profile),
-                    contentDescription = "Photo Profile",
-                    contentScale = ContentScale.Crop,
+            if (isLoggedIn) {
+                Row(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "I Putu Andika Putra",
-                    color = colors.onSurface,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Dropdown Icon",
-                    tint = colors.onSurface,
-                    modifier = Modifier
-                        .padding(start = 4.dp)
-                )
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = userData?.photoUrl,
+                        contentDescription = "Photo Profile",
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.default_photo_profile),
+                        error = painterResource(id = R.drawable.default_photo_profile),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = userData?.displayName ?: "User Chatloom",
+                        color = colors.onSurface,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { showLogoutDialog = true }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Default.ExitToApp,
+                            contentDescription = "Sign Out",
+                            tint = colors.onSurface
+                        )
+                    }
+                }
+            } else {
+                Column {
+                    Text(
+                        text = "Save your chat history and personalize your experience.",
+                        color = colors.onSurface.copy(alpha = 0.7f),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { onLoginClick() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text(
+                            text = "Continue with Google",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
-//            Column {
-//                Text(
-//                    text = "Save your chat history and personalize your experience.",
-//                    color = colors.onSurface.copy(alpha = 0.7f),
-//                    fontSize = 14.sp
-//                )
-//                Spacer(modifier = Modifier.height(12.dp))
-//                Button(
-//                    onClick = {},
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .height(48.dp),
-//                    shape = RoundedCornerShape(24.dp)
-//                ) {
-//                    Text(
-//                        text = "Log In or Sign Up",
-//                        fontSize = 16.sp,
-//                        fontWeight = FontWeight.SemiBold
-//                    )
-//                }
-//            }
         }
 
         selectedRoomToDelete?.let { room ->
@@ -238,6 +254,31 @@ fun DrawerLayout(
                 },
                 dismissButton = {
                     TextButton(onClick = { selectedRoomToDelete = null }) {
+                        Text(text = "Cancel")
+                    }
+                }
+            )
+        }
+
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = {
+                    Text(text = "Sign Out")
+                },
+                text = {
+                    Text(text = "Are you sure want to sign out?")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onLogoutClick()
+                        showLogoutDialog = false
+                    }) {
+                        Text(text = "Yes", color = Color.Green)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
                         Text(text = "Cancel")
                     }
                 }

@@ -12,7 +12,20 @@
           "package_name": "com.nandikacreativestudio.chatloom"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1067528338179-jttvse8luhnj6fi65e8uhrgtb4a5areb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nandikacreativestudio.chatloom",
+            "certificate_hash": "ea12c027fab6bc04278c43e6c77f2879d588e2cb"
+          }
+        },
+        {
+          "client_id": "1067528338179-v6pvmrj0f0abj08nncoi6oeupos11tma.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCYrosm_h6u_0TXQJHYpreFjKY34DQikfA"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1067528338179-v6pvmrj0f0abj08nncoi6oeupos11tma.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

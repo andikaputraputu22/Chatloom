@@ -1,15 +1,18 @@
 package com.nandikacreativestudio.chatloom.viewmodel
 
+import android.app.Activity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.ListenerRegistration
 import com.nandikacreativestudio.chatloom.models.Chat
 import com.nandikacreativestudio.chatloom.models.ChatRoom
 import com.nandikacreativestudio.chatloom.repository.ChatRepository
+import com.nandikacreativestudio.chatloom.repository.GoogleAuthRepository
 import com.nandikacreativestudio.chatloom.utils.Constants
 import com.nandikacreativestudio.chatloom.utils.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +24,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val chatRepository: ChatRepository
+    private val chatRepository: ChatRepository,
+    private val googleAuthRepository: GoogleAuthRepository
 ) : ViewModel() {
 
     private var listenerRegistration: ListenerRegistration? = null
@@ -41,11 +45,27 @@ class ChatViewModel @Inject constructor(
     private val _isLoadingDelete = MutableStateFlow(false)
     val isLoadingDelete: StateFlow<Boolean> = _isLoadingDelete
 
+    private val _isLoadingLogin = MutableStateFlow(false)
+    val isLoadingLogin: StateFlow<Boolean> = _isLoadingLogin
+
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()
 
+    private val _isSuccessLogin = MutableStateFlow(false)
+    val isSuccessLogin: StateFlow<Boolean> = _isSuccessLogin
+
+    private val _isLoggedIn = MutableStateFlow(false)
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
+
+    private val _userData = MutableStateFlow<FirebaseUser?>(null)
+    val userData: StateFlow<FirebaseUser?> = _userData
+
     private var lastUserMessageTime: Timestamp? = null
     private var isWaitingAssistant by mutableStateOf(false)
+
+    init {
+        checkLoginStatus()
+    }
 
     private fun observeChats(roomId: String) {
         listenerRegistration?.remove()
@@ -158,6 +178,42 @@ class ChatViewModel @Inject constructor(
         listenerRegistration = null
         _currentRoomId.value = null
         _chats.value = emptyList()
+    }
+
+    fun signInWithGoogle(activity: Activity) {
+        viewModelScope.launch {
+            try {
+                val request = googleAuthRepository.getSignInRequest()
+                val response = googleAuthRepository.launchSignIn(activity, request)
+                if (response != null) {
+                    _isLoadingLogin.value = true
+                    val success = googleAuthRepository.firebaseSignInWithGoogle(response)
+                    _isSuccessLogin.value = success
+                    _isLoggedIn.value = success
+                    if (success) {
+                        checkLoginStatus()
+                    }
+                } else {
+                    _isSuccessLogin.value = false
+                }
+            } catch (e: Exception) {
+                _isSuccessLogin.value = false
+            } finally {
+                _isLoadingLogin.value = false
+            }
+        }
+    }
+
+    private fun checkLoginStatus() {
+        val user = googleAuthRepository.getCurrentUser()
+        _isLoggedIn.value = googleAuthRepository.isLoggedIn()
+        _userData.value = user
+    }
+
+    fun signOut() {
+        googleAuthRepository.signOut()
+        _isLoggedIn.value = false
+        _userData.value = null
     }
 
     override fun onCleared() {

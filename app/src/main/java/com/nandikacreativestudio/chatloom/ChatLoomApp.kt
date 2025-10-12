@@ -1,5 +1,6 @@
 package com.nandikacreativestudio.chatloom
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -53,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -80,6 +82,9 @@ fun ChatLoomApp() {
     val currentRoomId by viewModel.currentRoomId.collectAsState()
     var isReturningFromSearch by remember { mutableStateOf(false) }
     val isLoadingDelete by viewModel.isLoadingDelete.collectAsState()
+    val isLoadingLogin by viewModel.isLoadingLogin.collectAsState()
+    val context = LocalContext.current
+    val activity = context as? Activity
 
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
@@ -92,6 +97,7 @@ fun ChatLoomApp() {
         gesturesEnabled = !isSearchFocused,
         drawerContent = {
             DrawerLayout(
+                viewModel = viewModel,
                 isSearchFocused = isSearchFocused,
                 onSearchFocusChange = {
                     isSearchFocused = it
@@ -111,6 +117,14 @@ fun ChatLoomApp() {
                 },
                 onDeleteRoom = { roomId ->
                     viewModel.deleteChatRoom(roomId)
+                },
+                onLoginClick = {
+                    activity?.let {
+                        viewModel.signInWithGoogle(it)
+                    }
+                },
+                onLogoutClick = {
+                    viewModel.signOut()
                 }
             )
         }
@@ -146,6 +160,10 @@ fun ChatLoomApp() {
     
     if (isLoadingDelete) {
         CircularProgress(title = "Deleting...")
+    }
+
+    if (isLoadingLogin) {
+        CircularProgress(title = "Please wait...")
     }
 }
 
