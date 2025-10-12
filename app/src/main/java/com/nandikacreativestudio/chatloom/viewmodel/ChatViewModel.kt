@@ -205,15 +205,26 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun checkLoginStatus() {
-        val user = googleAuthRepository.getCurrentUser()
-        _isLoggedIn.value = googleAuthRepository.isLoggedIn()
-        _userData.value = user
+        viewModelScope.launch {
+            val user = googleAuthRepository.getCurrentUser()
+            _isLoggedIn.value = googleAuthRepository.isLoggedIn()
+            _userData.value = user
+
+            val rooms = chatRepository.getChatRoom()
+            _chatRooms.value = rooms
+        }
     }
 
     fun signOut() {
-        googleAuthRepository.signOut()
-        _isLoggedIn.value = false
-        _userData.value = null
+        viewModelScope.launch {
+            googleAuthRepository.signOut()
+            _isLoggedIn.value = false
+            _userData.value = null
+
+            val rooms = chatRepository.getChatRoom()
+            _chatRooms.value = rooms
+            clearChat()
+        }
     }
 
     override fun onCleared() {
