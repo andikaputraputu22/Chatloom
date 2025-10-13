@@ -9,32 +9,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -46,20 +38,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.nandikacreativestudio.chatloom.R
 import com.nandikacreativestudio.chatloom.models.ChatRoom
 import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
 
@@ -163,6 +150,7 @@ fun DrawerLayout(
                             text = room.title,
                             color = textColor,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
@@ -179,109 +167,40 @@ fun DrawerLayout(
                 }
             }
             if (isLoggedIn) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AsyncImage(
-                        model = userData?.photoUrl,
-                        contentDescription = "Photo Profile",
-                        contentScale = ContentScale.Crop,
-                        placeholder = painterResource(id = R.drawable.default_photo_profile),
-                        error = painterResource(id = R.drawable.default_photo_profile),
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = userData?.displayName ?: "User Chatloom",
-                        color = colors.onSurface,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.ExitToApp,
-                            contentDescription = "Sign Out",
-                            tint = colors.onSurface
-                        )
-                    }
-                }
+                ProfileLayout(
+                    userData = userData,
+                    onLogoutClick = { showLogoutDialog = true }
+                )
             } else {
-                Column {
-                    Text(
-                        text = "Save your chat history and personalize your experience.",
-                        color = colors.onSurface.copy(alpha = 0.7f),
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = { onLoginClick() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Text(
-                            text = "Continue with Google",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+                LoginLayout(onLoginClick)
             }
         }
 
         selectedRoomToDelete?.let { room ->
-            AlertDialog(
-                onDismissRequest = { selectedRoomToDelete = null },
-                title = {
-                    Text(text = "Delete Chat")
+            ConfirmationDialog(
+                title = "Delete Chat",
+                message = "Are you sure want to delete this chat?",
+                confirmText = "Delete",
+                confirmColor = Color.Red,
+                onConfirm = {
+                    onDeleteRoom(room.id)
+                    selectedRoomToDelete = null
                 },
-                text = {
-                    Text(text = "Are you sure want to delete this chat?")
-                },
-                confirmButton = { 
-                    TextButton(onClick = {
-                        onDeleteRoom(room.id)
-                        selectedRoomToDelete = null
-                    }) {
-                        Text(text = "Delete", color = Color.Red)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { selectedRoomToDelete = null }) {
-                        Text(text = "Cancel")
-                    }
-                }
+                onDismiss = { selectedRoomToDelete = null }
             )
         }
 
         if (showLogoutDialog) {
-            AlertDialog(
-                onDismissRequest = { showLogoutDialog = false },
-                title = {
-                    Text(text = "Sign Out")
+            ConfirmationDialog(
+                title = "Sign Out",
+                message = "Are you sure want to sign out?",
+                confirmText = "Yes",
+                confirmColor = Color.Green,
+                onConfirm = {
+                    onLogoutClick()
+                    showLogoutDialog = false
                 },
-                text = {
-                    Text(text = "Are you sure want to sign out?")
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        onLogoutClick()
-                        showLogoutDialog = false
-                    }) {
-                        Text(text = "Yes", color = Color.Green)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showLogoutDialog = false }) {
-                        Text(text = "Cancel")
-                    }
-                }
+                onDismiss = { showLogoutDialog = false }
             )
         }
     }
