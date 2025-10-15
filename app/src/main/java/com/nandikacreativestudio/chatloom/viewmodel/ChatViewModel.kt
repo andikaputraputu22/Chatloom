@@ -192,6 +192,8 @@ class ChatViewModel @Inject constructor(
                     _isLoggedIn.value = success
                     if (success) {
                         checkLoginStatus()
+                        clearChat()
+                        chatRepository.deleteGuestRoom()
                     }
                 } else {
                     _isSuccessLogin.value = false
@@ -225,6 +227,10 @@ class ChatViewModel @Inject constructor(
             _chatRooms.value = rooms
             clearChat()
         }
+    }
+
+    fun deleteGuestRoom() = viewModelScope.launch {
+        chatRepository.deleteGuestRoom()
     }
 
     override fun onCleared() {
