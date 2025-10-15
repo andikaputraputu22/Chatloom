@@ -221,6 +221,7 @@ fun ChatScreen(
                         focusManager.clearFocus()
                         input = ""
                         viewModel.clearChat()
+                        viewModel.deleteGuestRoom()
                     }
                 )
             }

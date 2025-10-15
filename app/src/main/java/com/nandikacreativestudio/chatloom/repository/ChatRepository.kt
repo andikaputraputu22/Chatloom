@@ -15,6 +15,7 @@ import com.nandikacreativestudio.chatloom.models.request.ChatMessage
 import com.nandikacreativestudio.chatloom.models.request.ChatRequest
 import com.nandikacreativestudio.chatloom.utils.Constants
 import com.nandikacreativestudio.chatloom.utils.Result
+import com.nandikacreativestudio.chatloom.utils.SharedPreferencesManager
 import com.nandikacreativestudio.chatloom.utils.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -24,7 +25,8 @@ import javax.inject.Inject
 class ChatRepository @Inject constructor(
     private val apiService: ApiService,
     private val utils: Utils,
-    private val firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth,
+    private val sharedPreferencesManager: SharedPreferencesManager
 ) {
 
     private val db = Firebase.firestore
@@ -125,6 +127,9 @@ class ChatRepository @Inject constructor(
             .add(room)
             .await()
 
+        if (user?.uid == null) {
+            sharedPreferencesManager.addRoom(docRef.id)
+        }
         return docRef.id
     }
 
@@ -173,5 +178,25 @@ class ChatRepository @Inject constructor(
             batch.commit().await()
         }
         roomRef.delete().await()
+    }
+
+    private suspend fun deleteChatRooms(listRoom: List<String>) {
+        for (roomId in listRoom) {
+            try {
+                deleteChatRoom(roomId)
+            } catch (_: Exception) {}
+        }
+    }
+
+    suspend fun deleteGuestRoom() {
+        val roomList = sharedPreferencesManager.getRoomList()
+        if (roomList.isEmpty()) return
+
+        try {
+            deleteChatRooms(roomList)
+        } catch (_: Exception) {}
+        finally {
+            sharedPreferencesManager.clearRooms()
+        }
     }
 }
