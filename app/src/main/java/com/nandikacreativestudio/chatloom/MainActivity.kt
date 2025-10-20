@@ -11,18 +11,34 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.nandikacreativestudio.chatloom.ui.theme.ChatloomTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        setSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             ChatloomTheme {
                 ChatLoomApp()
             }
+        }
+    }
+
+    private fun setSplashScreen() {
+        val splashScreen = installSplashScreen()
+        splashScreen.setOnExitAnimationListener { splashViewProvider ->
+            splashViewProvider.iconView.animate()
+                .scaleX(1.6f)
+                .scaleY(1.6f)
+                .alpha(0f)
+                .setDuration(500L)
+                .withEndAction {
+                    splashViewProvider.remove()
+                }
         }
     }
 }
