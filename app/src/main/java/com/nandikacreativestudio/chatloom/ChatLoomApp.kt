@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -64,16 +65,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.nandikacreativestudio.chatloom.ui.component.AppNavGraph
 import com.nandikacreativestudio.chatloom.ui.component.ChatLayout
 import com.nandikacreativestudio.chatloom.ui.component.CircularProgress
 import com.nandikacreativestudio.chatloom.ui.component.DrawerLayout
 import com.nandikacreativestudio.chatloom.ui.component.LoadingChatLayout
+import com.nandikacreativestudio.chatloom.utils.Screen
 import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun ChatLoomApp() {
+    val navController = rememberNavController()
+    val navBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry.value?.destination?.route
+    val gesturesDrawerEnabled = currentRoute == Screen.Chat.route
     val viewModel: ChatViewModel = hiltViewModel()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -94,7 +103,7 @@ fun ChatLoomApp() {
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = !isSearchFocused,
+        gesturesEnabled = gesturesDrawerEnabled && !isSearchFocused,
         drawerContent = {
             DrawerLayout(
                 viewModel = viewModel,
@@ -129,9 +138,10 @@ fun ChatLoomApp() {
             )
         }
     ) {
-        ChatScreen(
+        AppNavGraph(
+            navController = navController,
             viewModel = viewModel,
-            onMenuClick = {
+            openDrawer = {
                 scope.launch { drawerState.open() }
             }
         )
@@ -170,7 +180,8 @@ fun ChatLoomApp() {
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel,
-    onMenuClick: () -> Unit = {}
+    onMenuClick: () -> Unit = {},
+    onFavoriteClick: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
     val hasSendMessage by viewModel.hasSendMessage.collectAsState()
@@ -222,7 +233,8 @@ fun ChatScreen(
                         input = ""
                         viewModel.clearChat()
                         viewModel.deleteGuestRoom()
-                    }
+                    },
+                    onFavoriteClick = onFavoriteClick
                 )
             }
         },
@@ -325,7 +337,8 @@ fun CreateNewChat(
 @Composable
 fun ChatHeader(
     onMenuClick: () -> Unit = {},
-    onCreateNewChatClick: () -> Unit = {}
+    onCreateNewChatClick: () -> Unit = {},
+    onFavoriteClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -351,6 +364,18 @@ fun ChatHeader(
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(modifier = Modifier.weight(1f))
+        IconButton(
+            onClick = onFavoriteClick,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color.Transparent)
+        ) {
+            Icon(
+                imageVector = Icons.Default.FavoriteBorder,
+                contentDescription = "Favorite"
+            )
+        }
         IconButton(
             onClick = onCreateNewChatClick,
             modifier = Modifier
