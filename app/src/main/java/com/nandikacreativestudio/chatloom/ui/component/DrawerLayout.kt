@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +65,10 @@ fun DrawerLayout(
     onLogoutClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    var menuExpanded by remember { mutableStateOf(false) }
+    var selectedRoomForMenu by remember {
+        mutableStateOf<ChatRoom?>(null)
+    }
     var selectedRoomToDelete by remember {
         mutableStateOf<ChatRoom?>(null)
     }
@@ -158,12 +162,29 @@ fun DrawerLayout(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(vertical = 8.dp, horizontal = 12.dp)
-                                .combinedClickable(
-                                    onClick = { onRoomClick(room.id) },
-                                    onLongClick = { selectedRoomToDelete = room }
-                                )
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onLongPress = { offset ->
+                                            selectedRoomForMenu = room
+                                            menuExpanded = true
+                                        },
+                                        onTap = {
+                                            onRoomClick(room.id)
+                                        }
+                                    )
+                                }
                         )
                     }
+                }
+
+                if (menuExpanded && selectedRoomForMenu != null) {
+                    RoomPopupMenu(
+                        onDismiss = { menuExpanded = false },
+                        onAddToFavorite = { },
+                        onDelete = {
+                            selectedRoomToDelete = selectedRoomForMenu
+                        }
+                    )
                 }
             }
             if (isLoggedIn) {
