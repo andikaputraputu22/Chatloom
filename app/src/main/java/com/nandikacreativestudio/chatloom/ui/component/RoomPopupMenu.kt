@@ -1,5 +1,6 @@
 package com.nandikacreativestudio.chatloom.ui.component
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,15 +24,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.nandikacreativestudio.chatloom.models.ChatRoom
 
 @Composable
 fun RoomPopupMenu(
+    chatRoom: ChatRoom?,
     onDismiss: () -> Unit,
     onAddToFavorite: () -> Unit,
     onDelete: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-
+    Log.e("Anjay", "Hasilnya: ${chatRoom?.isOnFavorite}")
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -65,11 +68,12 @@ fun RoomPopupMenu(
                 ) {
                     Icon(
                         imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "Add to Favorite",
+                        contentDescription = "Favorite",
                         tint = colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Add to Favorite",
+                        text = if (chatRoom?.isOnFavorite == true)
+                            "Remove from Favorite" else "Add to Favorite",
                         color = colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 8.dp)
                     )

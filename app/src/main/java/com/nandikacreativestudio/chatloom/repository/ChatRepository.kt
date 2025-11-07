@@ -121,7 +121,8 @@ class ChatRepository @Inject constructor(
         val room = hashMapOf(
             "title" to title,
             "createdAt" to FieldValue.serverTimestamp(),
-            "ownerId" to (user?.uid ?: "guest")
+            "ownerId" to (user?.uid ?: "guest"),
+            "isOnFavorite" to false
         )
         val docRef = db.collection("chat_rooms")
             .add(room)
@@ -144,10 +145,12 @@ class ChatRepository @Inject constructor(
         return snapshot.documents.mapNotNull { doc ->
             val title = doc.getString("title") ?: return@mapNotNull null
             val createdAt = doc.getTimestamp("createdAt")
+            val isOnFavorite = doc.getBoolean("isOnFavorite") ?: false
             ChatRoom(
                 id = doc.id,
                 title = title,
-                createdAt = createdAt
+                createdAt = createdAt,
+                isOnFavorite = isOnFavorite
             )
         }
     }
@@ -198,5 +201,12 @@ class ChatRepository @Inject constructor(
         finally {
             sharedPreferencesManager.clearRooms()
         }
+    }
+
+    suspend fun markRoomAsFavorite(roomId: String, currentValue: Boolean) {
+        db.collection("chat_rooms")
+            .document(roomId)
+            .update("isOnFavorite", !currentValue)
+            .await()
     }
 }

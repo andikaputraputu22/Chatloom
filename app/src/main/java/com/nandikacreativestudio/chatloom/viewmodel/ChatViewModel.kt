@@ -45,6 +45,9 @@ class ChatViewModel @Inject constructor(
     private val _isLoadingDelete = MutableStateFlow(false)
     val isLoadingDelete: StateFlow<Boolean> = _isLoadingDelete
 
+    private val _isSetFavorite = MutableStateFlow(false)
+    val isSetFavorite: StateFlow<Boolean> = _isSetFavorite
+
     private val _isLoadingLogin = MutableStateFlow(false)
     val isLoadingLogin: StateFlow<Boolean> = _isLoadingLogin
 
@@ -146,6 +149,27 @@ class ChatViewModel @Inject constructor(
             } catch (_: Exception) {}
             finally {
                 _isLoadingDelete.value = false
+            }
+        }
+    }
+
+    fun setFavorite(roomId: String, currentValue: Boolean) {
+        viewModelScope.launch {
+            try {
+                _chatRooms.value = _chatRooms.value.map { room ->
+                    if (room.id == roomId) room.copy(isOnFavorite = !currentValue)
+                    else room
+                }
+
+                chatRepository.markRoomAsFavorite(roomId, currentValue)
+                fetchChatRooms()
+                _isSetFavorite.value = true
+            } catch (e: Exception) {
+                _chatRooms.value = _chatRooms.value.map { room ->
+                    if (room.id == roomId) room.copy(isOnFavorite = currentValue)
+                    else room
+                }
+                _isSetFavorite.value = false
             }
         }
     }

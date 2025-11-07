@@ -77,11 +77,16 @@ fun DrawerLayout(
     }
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredRooms = remember(searchQuery, chatRooms) {
-        if (searchQuery.isBlank()) chatRooms
-        else chatRooms.filter {
-            it.title.contains(searchQuery, ignoreCase = true)
-        }
+//    val filteredRooms = remember(searchQuery, chatRooms) {
+//        if (searchQuery.isBlank()) chatRooms
+//        else chatRooms.filter {
+//            it.title.contains(searchQuery, ignoreCase = true)
+//        }
+//    }
+
+    val filteredRooms = if (searchQuery.isBlank()) chatRooms
+    else chatRooms.filter {
+        it.title.contains(searchQuery, ignoreCase = true)
     }
 
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
@@ -179,8 +184,13 @@ fun DrawerLayout(
 
                 if (menuExpanded && selectedRoomForMenu != null) {
                     RoomPopupMenu(
+                        selectedRoomForMenu,
                         onDismiss = { menuExpanded = false },
-                        onAddToFavorite = { },
+                        onAddToFavorite = {
+                            selectedRoomForMenu?.let { room ->
+                                viewModel.setFavorite(room.id, room.isOnFavorite)
+                            }
+                        },
                         onDelete = {
                             selectedRoomToDelete = selectedRoomForMenu
                         }
