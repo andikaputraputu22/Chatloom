@@ -2,6 +2,8 @@ package com.nandikacreativestudio.chatloom
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -265,45 +267,51 @@ fun ChatScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 24.dp)
         ) {
-            if (!hasSendMessage) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CreateNewChat()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Suggestion(
-                        onSuggestionClick = {
-                            viewModel.sendUserMessage(it)
-                            input = ""
-                        }
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 16.dp),
-                    state = listState
-                ) {
-                    itemsIndexed(chats) { index, chat ->
-                        ChatLayout(
-                            chat = chat,
-                            isUser = chat.role == "user",
-                            userBubbleColor = colors.surfaceVariant
+            Crossfade(
+                targetState = hasSendMessage,
+                animationSpec = tween(600),
+                label = "Chat State"
+            ) { state ->
+                if (!state) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CreateNewChat()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Suggestion(
+                            onSuggestionClick = {
+                                viewModel.sendUserMessage(it)
+                                input = ""
+                            }
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 16.dp),
+                        state = listState
+                    ) {
+                        itemsIndexed(chats) { index, chat ->
+                            ChatLayout(
+                                chat = chat,
+                                isUser = chat.role == "user",
+                                userBubbleColor = colors.surfaceVariant
+                            )
 
-                        val isLastUserMessage = chat.role == "user" &&
-                                (index == chats.lastIndex || chats.getOrNull(index + 1)?.role != "assistant")
-                        if (isLastUserMessage && isLoading) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                LoadingChatLayout()
+                            val isLastUserMessage = chat.role == "user" &&
+                                    (index == chats.lastIndex || chats.getOrNull(index + 1)?.role != "assistant")
+                            if (isLastUserMessage && isLoading) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    LoadingChatLayout()
+                                }
                             }
                         }
                     }

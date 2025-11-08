@@ -191,6 +191,40 @@ class ChatRepository @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    fun getFavoriteChatRoomFlow(): Flow<List<ChatRoom>> = callbackFlow {
+        val user = firebaseAuth.currentUser
+        if (user == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = db.collection("chat_rooms")
+            .whereEqualTo("ownerId", user.uid)
+            .whereEqualTo("isOnFavorite", true)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val rooms = value?.documents?.mapNotNull { doc ->
+                    val title = doc.getString("title") ?: return@mapNotNull null
+                    val createdAt = doc.getTimestamp("createdAt")
+                    val isOnFavorite = doc.getBoolean("isOnFavorite") ?: false
+                    ChatRoom(
+                        id = doc.id,
+                        title = title,
+                        createdAt = createdAt,
+                        isOnFavorite = isOnFavorite
+                    )
+                }.orEmpty()
+                trySend(rooms)
+            }
+        awaitClose { listener.remove() }
+    }
+
     suspend fun getChatOnce(roomId: String): List<Chat> {
         return db.collection("chat_rooms")
             .document(roomId)

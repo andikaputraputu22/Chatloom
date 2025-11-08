@@ -20,6 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -55,6 +56,9 @@ class ChatViewModel @Inject constructor(
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()
 
+    private val _favoriteRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
+    val favoriteRooms: StateFlow<List<ChatRoom>> = _favoriteRooms.asStateFlow()
+
     private val _isSuccessLogin = MutableStateFlow(false)
     val isSuccessLogin: StateFlow<Boolean> = _isSuccessLogin
 
@@ -67,6 +71,7 @@ class ChatViewModel @Inject constructor(
     private var lastUserMessageTime: Timestamp? = null
     private var isWaitingAssistant by mutableStateOf(false)
     private var chatRoomsJob: Job? = null
+    private var favoriteRoomsJob: Job? = null
 
     init {
         checkLoginStatus()
@@ -79,6 +84,20 @@ class ChatViewModel @Inject constructor(
                 _chatRooms.value = rooms
             }
         }
+    }
+
+    fun observeFavoriteRooms() {
+        favoriteRoomsJob?.cancel()
+        favoriteRoomsJob = viewModelScope.launch {
+            chatRepository.getFavoriteChatRoomFlow().collect { rooms ->
+                _favoriteRooms.value = rooms
+            }
+        }
+    }
+
+    fun stopFavoriteRoomsObserver() {
+        favoriteRoomsJob?.cancel()
+        favoriteRoomsJob = null
     }
 
     private fun observeChats(roomId: String) {
