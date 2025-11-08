@@ -6,5 +6,6 @@ data class ChatRoom(
     val id: String = "",
     val title: String = "",
     val createdAt: Timestamp? = null,
-    val ownerId: String = ""
+    val ownerId: String = "",
+    val isOnFavorite: Boolean = false
 )

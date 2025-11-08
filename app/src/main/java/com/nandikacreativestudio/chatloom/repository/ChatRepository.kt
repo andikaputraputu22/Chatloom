@@ -18,6 +18,9 @@ import com.nandikacreativestudio.chatloom.utils.Result
 import com.nandikacreativestudio.chatloom.utils.SharedPreferencesManager
 import com.nandikacreativestudio.chatloom.utils.Utils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -121,7 +124,8 @@ class ChatRepository @Inject constructor(
         val room = hashMapOf(
             "title" to title,
             "createdAt" to FieldValue.serverTimestamp(),
-            "ownerId" to (user?.uid ?: "guest")
+            "ownerId" to (user?.uid ?: "guest"),
+            "isOnFavorite" to false
         )
         val docRef = db.collection("chat_rooms")
             .add(room)
@@ -144,12 +148,47 @@ class ChatRepository @Inject constructor(
         return snapshot.documents.mapNotNull { doc ->
             val title = doc.getString("title") ?: return@mapNotNull null
             val createdAt = doc.getTimestamp("createdAt")
+            val isOnFavorite = doc.getBoolean("isOnFavorite") ?: false
             ChatRoom(
                 id = doc.id,
                 title = title,
-                createdAt = createdAt
+                createdAt = createdAt,
+                isOnFavorite = isOnFavorite
             )
         }
+    }
+
+    fun getChatRoomFlow(): Flow<List<ChatRoom>> = callbackFlow {
+        val user = firebaseAuth.currentUser
+        if (user == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = db.collection("chat_rooms")
+            .whereEqualTo("ownerId", user.uid)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val rooms = value?.documents?.mapNotNull { doc ->
+                    val title = doc.getString("title") ?: return@mapNotNull null
+                    val createdAt = doc.getTimestamp("createdAt")
+                    val isOnFavorite = doc.getBoolean("isOnFavorite") ?: false
+                    ChatRoom(
+                        id = doc.id,
+                        title = title,
+                        createdAt = createdAt,
+                        isOnFavorite = isOnFavorite
+                    )
+                }.orEmpty()
+                trySend(rooms)
+            }
+        awaitClose { listener.remove() }
     }
 
     suspend fun getChatOnce(roomId: String): List<Chat> {
@@ -198,5 +237,12 @@ class ChatRepository @Inject constructor(
         finally {
             sharedPreferencesManager.clearRooms()
         }
+    }
+
+    suspend fun markRoomAsFavorite(roomId: String, currentValue: Boolean) {
+        db.collection("chat_rooms")
+            .document(roomId)
+            .update("isOnFavorite", !currentValue)
+            .await()
     }
 }

@@ -16,6 +16,7 @@ import com.nandikacreativestudio.chatloom.repository.GoogleAuthRepository
 import com.nandikacreativestudio.chatloom.utils.Constants
 import com.nandikacreativestudio.chatloom.utils.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +46,9 @@ class ChatViewModel @Inject constructor(
     private val _isLoadingDelete = MutableStateFlow(false)
     val isLoadingDelete: StateFlow<Boolean> = _isLoadingDelete
 
+    private val _isSetFavorite = MutableStateFlow(false)
+    val isSetFavorite: StateFlow<Boolean> = _isSetFavorite
+
     private val _isLoadingLogin = MutableStateFlow(false)
     val isLoadingLogin: StateFlow<Boolean> = _isLoadingLogin
 
@@ -62,9 +66,19 @@ class ChatViewModel @Inject constructor(
 
     private var lastUserMessageTime: Timestamp? = null
     private var isWaitingAssistant by mutableStateOf(false)
+    private var chatRoomsJob: Job? = null
 
     init {
         checkLoginStatus()
+    }
+
+    private fun observeChatRooms() {
+        chatRoomsJob?.cancel()
+        chatRoomsJob = viewModelScope.launch {
+            chatRepository.getChatRoomFlow().collect { rooms ->
+                _chatRooms.value = rooms
+            }
+        }
     }
 
     private fun observeChats(roomId: String) {
@@ -141,11 +155,20 @@ class ChatViewModel @Inject constructor(
                 if (_currentRoomId.value == roomId) {
                     clearChat()
                 }
-                val rooms = chatRepository.getChatRoom()
-                _chatRooms.value = rooms
             } catch (_: Exception) {}
             finally {
                 _isLoadingDelete.value = false
+            }
+        }
+    }
+
+    fun setFavorite(roomId: String, currentValue: Boolean) {
+        viewModelScope.launch {
+            try {
+                chatRepository.markRoomAsFavorite(roomId, currentValue)
+                _isSetFavorite.value = true
+            } catch (e: Exception) {
+                _isSetFavorite.value = false
             }
         }
     }
@@ -161,10 +184,10 @@ class ChatViewModel @Inject constructor(
     }
 
     fun fetchChatRooms() {
-        viewModelScope.launch {
-            val rooms = chatRepository.getChatRoom()
-            _chatRooms.value = rooms
-        }
+//        viewModelScope.launch {
+//            val rooms = chatRepository.getChatRoom()
+//            _chatRooms.value = rooms
+//        }
     }
 
     fun setHasSendMessage(value: Boolean) {
@@ -211,20 +234,20 @@ class ChatViewModel @Inject constructor(
             val user = googleAuthRepository.getCurrentUser()
             _isLoggedIn.value = googleAuthRepository.isLoggedIn()
             _userData.value = user
-
-            val rooms = chatRepository.getChatRoom()
-            _chatRooms.value = rooms
+            if (user != null) {
+                observeChatRooms()
+            }
         }
     }
 
     fun signOut() {
         viewModelScope.launch {
+            chatRoomsJob?.cancel()
+            chatRoomsJob = null
             googleAuthRepository.signOut()
             _isLoggedIn.value = false
             _userData.value = null
-
-            val rooms = chatRepository.getChatRoom()
-            _chatRooms.value = rooms
+            _chatRooms.value = emptyList()
             clearChat()
         }
     }

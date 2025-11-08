@@ -88,6 +88,7 @@ fun ChatLoomApp() {
     val scope = rememberCoroutineScope()
     var isSearchFocused by remember { mutableStateOf(false) }
     var hasExitedSearch by remember { mutableStateOf(false) }
+    val chatRooms by viewModel.chatRooms.collectAsState()
     val currentRoomId by viewModel.currentRoomId.collectAsState()
     var isReturningFromSearch by remember { mutableStateOf(false) }
     val isLoadingDelete by viewModel.isLoadingDelete.collectAsState()
@@ -95,11 +96,11 @@ fun ChatLoomApp() {
     val context = LocalContext.current
     val activity = context as? Activity
 
-    LaunchedEffect(drawerState.isOpen) {
-        if (drawerState.isOpen) {
-            viewModel.fetchChatRooms()
-        }
-    }
+//    LaunchedEffect(drawerState.isOpen) {
+//        if (drawerState.isOpen) {
+//            viewModel.fetchChatRooms()
+//        }
+//    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -112,7 +113,7 @@ fun ChatLoomApp() {
                     isSearchFocused = it
                     if (!it) hasExitedSearch = true
                 },
-                chatRooms = viewModel.chatRooms.collectAsState().value,
+                chatRooms = chatRooms,
                 currentRoomId = currentRoomId,
                 onRoomClick = { roomId ->
                     viewModel.onRoomClick(roomId)

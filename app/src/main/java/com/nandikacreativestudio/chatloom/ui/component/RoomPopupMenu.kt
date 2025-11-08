@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,19 +24,22 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.nandikacreativestudio.chatloom.models.ChatRoom
 
 @Composable
 fun RoomPopupMenu(
+    chatRoom: ChatRoom?,
     onDismiss: () -> Unit,
     onAddToFavorite: () -> Unit,
     onDelete: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val isOnFavorite = chatRoom?.isOnFavorite == true
+
         Box(
             modifier = Modifier
                 .wrapContentWidth()
@@ -64,12 +68,14 @@ fun RoomPopupMenu(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "Add to Favorite",
+                        imageVector = if (isOnFavorite)
+                            Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorite",
                         tint = colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Add to Favorite",
+                        text = if (isOnFavorite)
+                            "Remove from Favorite" else "Add to Favorite",
                         color = colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 8.dp)
                     )

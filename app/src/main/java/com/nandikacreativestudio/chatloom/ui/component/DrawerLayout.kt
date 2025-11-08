@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -144,7 +144,7 @@ fun DrawerLayout(
                         .fillMaxSize()
                         .padding(top = 8.dp)
                 ) {
-                    items(filteredRooms) { room ->
+                    items(filteredRooms, key = { it.id }) { room ->
                         val isSelected = room.id == currentRoomId
                         val backgroundColor = if (isSelected) colors.primary.copy(alpha = 0.1f)
                         else Color.Transparent
@@ -162,25 +162,26 @@ fun DrawerLayout(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(vertical = 8.dp, horizontal = 12.dp)
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onLongPress = { offset ->
-                                            selectedRoomForMenu = room
-                                            menuExpanded = true
-                                        },
-                                        onTap = {
-                                            onRoomClick(room.id)
-                                        }
-                                    )
-                                }
+                                .combinedClickable(
+                                    onClick = { onRoomClick(room.id) },
+                                    onLongClick = {
+                                        selectedRoomForMenu = room
+                                        menuExpanded = true
+                                    }
+                                )
                         )
                     }
                 }
 
                 if (menuExpanded && selectedRoomForMenu != null) {
                     RoomPopupMenu(
+                        selectedRoomForMenu,
                         onDismiss = { menuExpanded = false },
-                        onAddToFavorite = { },
+                        onAddToFavorite = {
+                            selectedRoomForMenu?.let { room ->
+                                viewModel.setFavorite(room.id, room.isOnFavorite)
+                            }
+                        },
                         onDelete = {
                             selectedRoomToDelete = selectedRoomForMenu
                         }
