@@ -18,6 +18,9 @@ import com.nandikacreativestudio.chatloom.utils.Result
 import com.nandikacreativestudio.chatloom.utils.SharedPreferencesManager
 import com.nandikacreativestudio.chatloom.utils.Utils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -153,6 +156,39 @@ class ChatRepository @Inject constructor(
                 isOnFavorite = isOnFavorite
             )
         }
+    }
+
+    fun getChatRoomFlow(): Flow<List<ChatRoom>> = callbackFlow {
+        val user = firebaseAuth.currentUser
+        if (user == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = db.collection("chat_rooms")
+            .whereEqualTo("ownerId", user.uid)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val rooms = value?.documents?.mapNotNull { doc ->
+                    val title = doc.getString("title") ?: return@mapNotNull null
+                    val createdAt = doc.getTimestamp("createdAt")
+                    val isOnFavorite = doc.getBoolean("isOnFavorite") ?: false
+                    ChatRoom(
+                        id = doc.id,
+                        title = title,
+                        createdAt = createdAt,
+                        isOnFavorite = isOnFavorite
+                    )
+                }.orEmpty()
+                trySend(rooms)
+            }
+        awaitClose { listener.remove() }
     }
 
     suspend fun getChatOnce(roomId: String): List<Chat> {
