@@ -31,7 +31,8 @@ fun AppNavGraph(
 
         composable(Screen.Favorite.route) {
             FavoriteScreen(
-                navController = navController
+                navController = navController,
+                viewModel = viewModel
             )
         }
     }
