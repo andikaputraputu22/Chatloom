@@ -85,11 +85,17 @@ fun FavoriteScreen(
                     enter = fadeIn(animationSpec = tween(600)) + expandVertically(),
                     exit = fadeOut(animationSpec = tween(400)) + shrinkVertically()
                 ) {
-                    FavoriteRoomItem(room = room) {
-                        navController.popBackStack()
-                        viewModel.onRoomClick(room.id)
-                        viewModel.setHasSendMessage(true)
-                    }
+                    FavoriteRoomItem(
+                        room = room,
+                        onClick = {
+                            navController.popBackStack()
+                            viewModel.onRoomClick(room.id)
+                            viewModel.setHasSendMessage(true)
+                        },
+                        onRemoveFavorite = { room ->
+                            viewModel.setFavorite(room.id, room.isOnFavorite)
+                        }
+                    )
                 }
             }
         }

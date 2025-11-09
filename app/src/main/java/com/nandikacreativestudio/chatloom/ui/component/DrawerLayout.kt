@@ -1,6 +1,8 @@
 package com.nandikacreativestudio.chatloom.ui.component
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -54,6 +56,7 @@ import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
 @SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
 fun DrawerLayout(
+    context: Context,
     viewModel: ChatViewModel,
     isSearchFocused: Boolean,
     onSearchFocusChange: (Boolean) -> Unit,
@@ -64,6 +67,7 @@ fun DrawerLayout(
     onLoginClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
+
     val colors = MaterialTheme.colorScheme
     var menuExpanded by remember { mutableStateOf(false) }
     var selectedRoomForMenu by remember {
@@ -86,10 +90,23 @@ fun DrawerLayout(
 
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val userData by viewModel.userData.collectAsState()
+    val isSetFavorite by viewModel.isSetFavorite.collectAsState()
 
     BackHandler(enabled = isSearchFocused) {
         onSearchFocusChange(false)
     }
+
+//    LaunchedEffect(isSetFavorite) {
+//        if (isSetFavorite) {
+//            Toast.makeText(
+//                context,
+//                if (selectedRoomForMenu?.isOnFavorite == true) "Removed from Favorite"
+//                else "Added to Favorite",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//            viewModel.resetSetFavoriteState()
+//        }
+//    }
 
     val modifier = if (isSearchFocused) {
         Modifier

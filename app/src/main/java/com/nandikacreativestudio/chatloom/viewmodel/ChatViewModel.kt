@@ -192,6 +192,10 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun resetSetFavoriteState() {
+        _isSetFavorite.value = false
+    }
+
     fun onRoomClick(roomId: String) {
         if (_currentRoomId.value == roomId) {
             return
