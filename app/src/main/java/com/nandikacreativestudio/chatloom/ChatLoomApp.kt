@@ -109,6 +109,7 @@ fun ChatLoomApp() {
         gesturesEnabled = gesturesDrawerEnabled && !isSearchFocused,
         drawerContent = {
             DrawerLayout(
+                context = context,
                 viewModel = viewModel,
                 isSearchFocused = isSearchFocused,
                 onSearchFocusChange = {
