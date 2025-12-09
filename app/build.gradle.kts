@@ -33,11 +33,11 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("String", "BASE_URL", "\"https://api.openai.com/v1/\"")
-            buildConfigField("String", "API_KEY", "\"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\"")
+            buildConfigField("String", "API_KEY", "\"YOUR_API_KEY_HERE\"")
         }
         debug {
             buildConfigField("String", "BASE_URL", "\"https://api.openai.com/v1/\"")
-            buildConfigField("String", "API_KEY", "\"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\"")
+            buildConfigField("String", "API_KEY", "\"YOUR_API_KEY_HERE\"")
         }
     }
     compileOptions {
