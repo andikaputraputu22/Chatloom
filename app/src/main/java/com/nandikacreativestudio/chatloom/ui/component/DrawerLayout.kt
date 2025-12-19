@@ -79,6 +79,9 @@ fun DrawerLayout(
     var showLogoutDialog by remember {
         mutableStateOf(false)
     }
+    var favoriteStatus by remember {
+        mutableStateOf<Boolean?>(null)
+    }
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredRooms = remember(searchQuery, chatRooms) {
@@ -197,6 +200,7 @@ fun DrawerLayout(
                         onAddToFavorite = {
                             selectedRoomForMenu?.let { room ->
                                 viewModel.setFavorite(room.id, room.isOnFavorite)
+                                favoriteStatus = room.isOnFavorite
                             }
                         },
                         onDelete = {
@@ -241,6 +245,14 @@ fun DrawerLayout(
                 },
                 onDismiss = { showLogoutDialog = false }
             )
+        }
+
+        isSetFavorite?.let {
+            favoriteStatus?.let { status ->
+                val message = if (status) "Removed from Favorites" else "Added to Favorites"
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                favoriteStatus = null
+            }
         }
     }
 }
