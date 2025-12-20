@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.nandikacreativestudio.chatloom.ui.component.EmptyPlaceholder
 import com.nandikacreativestudio.chatloom.ui.component.FavoriteHeader
 import com.nandikacreativestudio.chatloom.ui.component.FavoriteRoomItem
 import com.nandikacreativestudio.chatloom.viewmodel.ChatViewModel
@@ -72,30 +74,42 @@ fun FavoriteScreen(
             }
         }
     ) { innerPadding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(top = 12.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(favoriteRooms, key = { it.id }) { room ->
-                AnimatedVisibility(
-                    visible = isFavoriteScreenVisible,
-                    enter = fadeIn(animationSpec = tween(600)) + expandVertically(),
-                    exit = fadeOut(animationSpec = tween(400)) + shrinkVertically()
+            if (favoriteRooms.isEmpty()) {
+                EmptyPlaceholder(
+                    modifier = Modifier.fillMaxSize(),
+                    title = "No Favorite Room"
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 12.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FavoriteRoomItem(
-                        room = room,
-                        onClick = {
-                            navController.popBackStack()
-                            viewModel.onRoomClick(room.id)
-                            viewModel.setHasSendMessage(true)
-                        },
-                        onRemoveFavorite = { room ->
-                            viewModel.setFavorite(room.id, room.isOnFavorite)
+                    items(favoriteRooms, key = { it.id }) { room ->
+                        AnimatedVisibility(
+                            visible = isFavoriteScreenVisible,
+                            enter = fadeIn(animationSpec = tween(600)) + expandVertically(),
+                            exit = fadeOut(animationSpec = tween(400)) + shrinkVertically()
+                        ) {
+                            FavoriteRoomItem(
+                                room = room,
+                                onClick = {
+                                    navController.popBackStack()
+                                    viewModel.onRoomClick(room.id)
+                                    viewModel.setHasSendMessage(true)
+                                },
+                                onRemoveFavorite = { room ->
+                                    viewModel.setFavorite(room.id, room.isOnFavorite)
+                                }
+                            )
                         }
-                    )
+                    }
                 }
             }
         }
