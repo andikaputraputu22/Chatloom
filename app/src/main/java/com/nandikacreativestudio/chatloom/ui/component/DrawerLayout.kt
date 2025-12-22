@@ -17,22 +17,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,12 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,18 +90,6 @@ fun DrawerLayout(
     BackHandler(enabled = isSearchFocused) {
         onSearchFocusChange(false)
     }
-
-//    LaunchedEffect(isSetFavorite) {
-//        if (isSetFavorite) {
-//            Toast.makeText(
-//                context,
-//                if (selectedRoomForMenu?.isOnFavorite == true) "Removed from Favorite"
-//                else "Added to Favorite",
-//                Toast.LENGTH_SHORT
-//            ).show()
-//            viewModel.resetSetFavoriteState()
-//        }
-//    }
 
     val modifier = if (isSearchFocused) {
         Modifier
@@ -166,15 +146,12 @@ fun DrawerLayout(
                 ) {
                     items(filteredRooms, key = { it.id }) { room ->
                         val isSelected = room.id == currentRoomId
+                        val isOnFavorite = room.isOnFavorite
                         val backgroundColor = if (isSelected) colors.primary.copy(alpha = 0.1f)
                         else Color.Transparent
                         val textColor = if (isSelected) colors.primary else colors.onSurface
 
-                        Text(
-                            text = room.title,
-                            color = textColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
@@ -188,8 +165,28 @@ fun DrawerLayout(
                                         selectedRoomForMenu = room
                                         menuExpanded = true
                                     }
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = room.title,
+                                color = textColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            if (isOnFavorite) {
+                                Icon(
+                                    imageVector = Icons.Filled.Favorite,
+                                    contentDescription = "Favorite Room",
+                                    tint = textColor,
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .padding(start = 8.dp)
                                 )
-                        )
+                            }
+                        }
                     }
                 }
 
@@ -254,74 +251,5 @@ fun DrawerLayout(
                 favoriteStatus = null
             }
         }
-    }
-}
-
-@Composable
-fun SearchBar(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    isFocused: Boolean,
-    onFocusChange: (Boolean) -> Unit,
-    onRequestClearFocus: () -> Unit
-) {
-    val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    val colors = MaterialTheme.colorScheme
-
-    LaunchedEffect(isFocused) {
-        if (isFocused) {
-            focusRequester.requestFocus()
-        } else {
-            focusManager.clearFocus()
-        }
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            placeholder = {
-                Text(
-                    text = "Search",
-                    color = colors.onSurface.copy(alpha = 0.6f)
-                )
-            },
-            leadingIcon = {
-                if (isFocused) {
-                    IconButton(onClick = { onRequestClearFocus() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon"
-                    )
-                }
-            },
-            shape = RoundedCornerShape(50),
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .onFocusChanged {
-                    onFocusChange(it.isFocused)
-                },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = colors.surfaceVariant,
-                unfocusedContainerColor = colors.surfaceVariant,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent,
-            )
-        )
     }
 }
